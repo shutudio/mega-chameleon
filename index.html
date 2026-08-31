@@ -89,7 +89,7 @@
 
   /* ---- create stage ---- */
   .stage{
-    position:relative; width:100%; aspect-ratio:8/5; border-radius:18px; overflow:hidden;
+    position:relative; width:100%; aspect-ratio:4/3; border-radius:18px; overflow:hidden;
     border:3px solid var(--ink); background:#ccc; touch-action:none;
   }
   .stage > .bg-layer{ width:100%; height:100%; display:block; object-fit:cover; }
@@ -112,8 +112,11 @@
   .roundinfo{ font-size:1rem; color:var(--ink-soft); margin:2px 0 14px; font-weight:600; }
 
   /* ---- paint dock: iPad two-column ---- */
-  .dock{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; padding-top:18px; border-top:3px dashed var(--line-2); }
-  @media (max-width:820px){ .dock{ grid-template-columns:1fr; } }
+  /* ---- work area: stage left, tools right (stacks only on narrow phones) ---- */
+  .workarea{ display:flex; gap:20px; align-items:flex-start; margin-top:4px; }
+  .stagecol{ flex:1.5 1 0; min-width:0; }
+  .toolcol{ flex:1 1 300px; max-width:340px; }
+  @media (max-width:680px){ .workarea{ flex-direction:column; } .toolcol{ max-width:none; width:100%; } }
   .dockblock h3{ font-size:.95rem; color:var(--ink-soft); margin-bottom:9px; letter-spacing:.02em; }
 
   .swatches{ display:grid; grid-template-columns:repeat(auto-fit,minmax(46px,1fr)); gap:9px; }
@@ -217,45 +220,52 @@
       <div class="card">
         <h2>몸을 칠해서 숨어라</h2>
         <div class="roundinfo" id="round-badge"></div>
-        <div class="stage" id="create-stage">
-          <div class="char-anchor" id="char-anchor">
-            <div class="drag-handle" id="drag-handle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#1D1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3 L12 21 M3 12 L21 12 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>
-              </svg>
+        <div class="workarea">
+          <div class="stagecol">
+            <div class="stage" id="create-stage">
+              <div class="char-anchor" id="char-anchor">
+                <div class="drag-handle" id="drag-handle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#1D1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3 L12 21 M3 12 L21 12 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>
+                  </svg>
+                </div>
+                <div class="char-inner" id="char-inner">
+                  <canvas id="paint-canvas" width="260" height="340"></canvas>
+                </div>
+              </div>
+              <div class="zoom-badge" id="zoom-badge">확대 1x</div>
             </div>
-            <div class="char-inner" id="char-inner">
-              <canvas id="paint-canvas" width="260" height="340"></canvas>
-            </div>
+            <p class="hint">손잡이를 끌어 옮기고, 몸을 문질러 색칠하세요. 두 손가락으로 오므리고 펴면 확대돼요.</p>
           </div>
-          <div class="zoom-badge" id="zoom-badge">확대 1x</div>
-        </div>
-        <p class="hint">동그란 손잡이를 끌어 옮기고, 몸을 문질러 색칠하세요.</p>
 
-        <div class="dock">
-          <div class="dockblock">
-            <h3>이름</h3>
-            <input type="text" id="char-name" class="nameinput" maxlength="14" placeholder="닉네임" autocomplete="off">
-            <div class="warn" id="name-warning"></div>
-            <h3 style="margin-top:14px;">자세</h3>
-            <div class="poses" id="pose-row"></div>
-          </div>
-          <div class="dockblock">
-            <h3>색</h3>
-            <div class="swatches" id="brush-swatches"></div>
-            <div class="pickrow">
-              <input type="color" id="brush-color-picker" value="#FF3E7F">
-              <button class="toolbtn" id="eyedrop-btn">스포이드</button>
-              <button class="toolbtn" id="zoom-btn">확대</button>
+          <div class="toolcol">
+            <div class="dockblock">
+              <h3>색</h3>
+              <div class="swatches" id="brush-swatches"></div>
+              <div class="pickrow">
+                <input type="color" id="brush-color-picker" value="#FF3E7F">
+                <button class="toolbtn" id="eyedrop-btn">스포이드</button>
+              </div>
             </div>
-            <h3 style="margin-top:14px;">붓 굵기</h3>
-            <div class="sizerow">
-              <div class="sizedot" id="size-dot" style="width:20px;height:20px;"></div>
-              <input type="range" id="brush-size" min="4" max="60" value="22">
+            <div class="dockblock" style="margin-top:16px;">
+              <h3>붓 굵기</h3>
+              <div class="sizerow">
+                <div class="sizedot" id="size-dot" style="width:20px;height:20px;"></div>
+                <input type="range" id="brush-size" min="4" max="60" value="22">
+              </div>
+              <div class="toolrow" style="margin-top:12px;">
+                <button class="toolbtn" id="eraser-btn">지우개</button>
+                <button class="toolbtn" id="clear-btn">전체 지우기</button>
+              </div>
             </div>
-            <div class="toolrow" style="margin-top:12px;">
-              <button class="toolbtn" id="eraser-btn">지우개</button>
-              <button class="toolbtn" id="clear-btn">전체 지우기</button>
+            <div class="dockblock" style="margin-top:16px;">
+              <h3>자세</h3>
+              <div class="poses" id="pose-row"></div>
+            </div>
+            <div class="dockblock" style="margin-top:16px;">
+              <h3>이름</h3>
+              <input type="text" id="char-name" class="nameinput" maxlength="14" placeholder="닉네임" autocomplete="off">
+              <div class="warn" id="name-warning"></div>
             </div>
           </div>
         </div>
@@ -351,34 +361,75 @@ const BLANK='#F4F1E8';
 /* ================= blobby character ================= */
 const ARM_LEN=92, ARM_W=34;
 const POSE_ANGLES={ attention:{l:8,r:8}, wide:{l:78,r:78}, cheer:{l:165,r:165}, onehand:{l:165,r:10} };
-const POSES=[{id:'attention',name:'차렷'},{id:'wide',name:'팔벌려'},{id:'cheer',name:'만세'},{id:'onehand',name:'한손'}];
+const POSES=[{id:'attention',name:'차렷'},{id:'wide',name:'팔벌려'},{id:'cheer',name:'만세'},{id:'onehand',name:'한손'},{id:'lying',name:'눕기'}];
 
 function rot(px,py,cx,cy,d){ const r=d*Math.PI/180,c=Math.cos(r),s=Math.sin(r),dx=px-cx,dy=py-cy;
   return {x:cx+dx*c-dy*s, y:cy+dx*s+dy*c}; }
+/* A limb is ONE continuous path: straight sides + a rounded far end (a capsule).
+   Earlier this was a rectangle plus a separate overlapping circle, and where the
+   two subpaths overlapped with opposite winding directions the fill rule
+   cancelled out — a hole. A single closed path can never have that problem. */
+/* A limb is ONE continuous capsule path (straight sides + a rounded far end).
+   Every subpath in the final silhouette MUST wind the same direction (all
+   clockwise here) — nonzero fill-rule only creates a "hole" when two
+   overlapping shapes wind in OPPOSITE directions. The rectangle's point order
+   has to mirror between the left/right side to keep that consistent (verified
+   numerically), not just the arc's sweep flag. */
 function limb(pivot,dx,len,w,angle){
-  const pts=[{x:pivot.x,y:pivot.y},{x:pivot.x+dx,y:pivot.y},{x:pivot.x+dx,y:pivot.y+len},{x:pivot.x,y:pivot.y+len}]
-    .map(p=>rot(p.x,p.y,pivot.x,pivot.y,angle));
-  const end=rot(pivot.x+dx/2,pivot.y+len,pivot.x,pivot.y,angle);
   const rr=Math.abs(dx)/2;
-  return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)} L${pts[2].x.toFixed(1)},${pts[2].y.toFixed(1)} L${pts[3].x.toFixed(1)},${pts[3].y.toFixed(1)} Z`
-    + ` M${(end.x-rr).toFixed(1)},${end.y.toFixed(1)} a${rr.toFixed(1)},${rr.toFixed(1)} 0 1,0 ${(rr*2).toFixed(1)},0 a${rr.toFixed(1)},${rr.toFixed(1)} 0 1,0 ${(-rr*2).toFixed(1)},0 Z`;
+  const flat=len-rr;
+  const P = pivot;
+  const outer = {x:P.x+dx, y:P.y};
+  const outerFlat = {x:P.x+dx, y:P.y+flat};
+  const innerFlat = {x:P.x, y:P.y+flat};
+  let seq, endPt;
+  if(dx<0){ seq=[P,outer,outerFlat]; endPt=innerFlat; }
+  else{ seq=[P,innerFlat]; endPt=outerFlat; }
+  const pts=seq.map(p=>rot(p.x,p.y,P.x,P.y,angle));
+  const endR=rot(endPt.x,endPt.y,P.x,P.y,angle);
+  if(dx<0){
+    return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)} `+
+           `L${pts[2].x.toFixed(1)},${pts[2].y.toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0,0 ${endR.x.toFixed(1)},${endR.y.toFixed(1)} Z`;
+  }
+  const outerR=rot(outer.x,outer.y,P.x,P.y,angle);
+  return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)} `+
+         `A${rr.toFixed(1)},${rr.toFixed(1)} 0 0,0 ${endR.x.toFixed(1)},${endR.y.toFixed(1)} L${outerR.x.toFixed(1)},${outerR.y.toFixed(1)} Z`;
+}
+function circlePath(cx,cy,r){
+  return `M${(cx-r).toFixed(1)},${cy.toFixed(1)} a${r.toFixed(1)},${r.toFixed(1)} 0 1,0 ${(r*2).toFixed(1)},0 a${r.toFixed(1)},${r.toFixed(1)} 0 1,0 ${(-r*2).toFixed(1)},0 Z`;
 }
 function buildPosePath(id){
+  if(id==='lying'){
+    // lying flat, viewed from above: head + horizontal torso, arms out to the
+    // sides, legs extended further along the body. Built from the same
+    // clockwise-wound pieces as the standing poses, so it's just as hole-safe.
+    const head=circlePath(42,180,38);
+    const torso=limb({x:70,y:212}, 64, 85, 64, -90);
+    const armUp=limb({x:100,y:180}, -26, 66, 26, 180);
+    const armDown=limb({x:100,y:180}, 26, 66, 26, 0);
+    const legUp=limb({x:150,y:150}, -22, 95, 22, -90);
+    const legDown=limb({x:150,y:210}, 22, 95, 22, -90);
+    return [head,torso,armUp,armDown,legUp,legDown].join(' ');
+  }
   const a=POSE_ANGLES[id]||POSE_ANGLES.attention;
   const head='M130,26 a40,40 0 1,0 0.1,0 Z';
-  const torso='M92,84 q38,-12 76,0 l6,118 q-44,14 -88,0 Z';
+  const torso='M86,202 Q130,216 174,202 L168,84 Q130,72 92,84 Z';
   const armL=limb({x:96,y:96},-ARM_W,ARM_LEN,ARM_W,a.l);
   const armR=limb({x:164,y:96},ARM_W,ARM_LEN,ARM_W,-a.r);
   const legL=limb({x:126,y:196},-32,116,32,6);
   const legR=limb({x:134,y:196},32,116,32,-6);
   return [head,torso,armL,armR,legL,legR].join(' ');
 }
-function faceSVG(){
+function faceSVG(id){
+  if(id==='lying'){
+    return `<g><ellipse cx="30" cy="172" rx="5" ry="8" fill="#1D1B18"/><ellipse cx="54" cy="172" rx="5" ry="8" fill="#1D1B18"/>`
+      + `<path d="M24,184 q17,16 34,0" fill="none" stroke="#1D1B18" stroke-width="5" stroke-linecap="round"/></g>`;
+  }
   return `<g><ellipse cx="115" cy="52" rx="5.5" ry="9" fill="#1D1B18"/><ellipse cx="145" cy="52" rx="5.5" ry="9" fill="#1D1B18"/>`
     + `<path d="M107,66 q23,22 46,0" fill="none" stroke="#1D1B18" stroke-width="6" stroke-linecap="round"/></g>`;
 }
 function poseThumb(id){
-  return `<svg viewBox="0 0 260 340"><path d="${buildPosePath(id)}" fill="#fff" stroke="#1D1B18" stroke-width="7" stroke-linejoin="round"/>${faceSVG()}</svg>`;
+  return `<svg viewBox="0 0 260 340"><path d="${buildPosePath(id)}" fill="#fff" stroke="#1D1B18" stroke-width="7" stroke-linejoin="round"/>${faceSVG(id)}</svg>`;
 }
 
 /* ================= backgrounds ================= */
@@ -395,37 +446,37 @@ function builtinOf(id){ return BUILTIN.find(b=>b.id===id); }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; } }
 function buildBrick(){
   let b=''; const rnd=mulberry32(3);
-  for(let r=0;r<10;r++){ const off=(r%2)?-40:0;
+  for(let r=0;r<12;r++){ const off=(r%2)?-40:0;
     for(let c=0;c<11;c++){ const x=off+c*76, y=r*50;
       const t=['#A8563E','#B4614A','#9C4E38','#BE6E55'][Math.floor(rnd()*4)];
       b+=`<rect x="${x+4}" y="${y+4}" width="68" height="42" rx="4" fill="${t}"/>`; } }
-  return `<rect width="800" height="500" fill="#D9CFC2"/>${b}`;
+  return `<rect width="800" height="600" fill="#D9CFC2"/>${b}`;
 }
 function leaf(x,y,s,c){ return `<path d="M${x} ${y} C${x+s} ${y-s*.3} ${x+s} ${y+s*.3} ${x} ${y+s} C${x-s} ${y+s*.3} ${x-s} ${y-s*.3} ${x} ${y} Z" fill="${c}"/>`; }
 function buildJungle(){
   return `<defs><linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DCE9B8"/><stop offset="100%" stop-color="#4F7942"/></linearGradient></defs>
-  <rect width="800" height="500" fill="url(#jg)"/><ellipse cx="120" cy="470" rx="220" ry="60" fill="#3E6534"/><ellipse cx="650" cy="480" rx="260" ry="70" fill="#3E6534"/>
-  ${leaf(90,120,60,'#2F5A28')}${leaf(180,80,80,'#3E6534')}${leaf(650,90,90,'#2F5A28')}${leaf(730,180,55,'#3E6534')}${leaf(60,300,70,'#345E2C')}${leaf(400,60,65,'#2F5A28')}`;
+  <rect width="800" height="600" fill="url(#jg)"/><ellipse cx="120" cy="560" rx="220" ry="60" fill="#3E6534"/><ellipse cx="650" cy="570" rx="260" ry="70" fill="#3E6534"/>
+  ${leaf(90,140,60,'#2F5A28')}${leaf(180,90,80,'#3E6534')}${leaf(650,100,90,'#2F5A28')}${leaf(730,210,55,'#3E6534')}${leaf(60,360,70,'#345E2C')}${leaf(400,70,65,'#2F5A28')}`;
 }
 function buildDesert(){
   return `<defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCE3AE"/><stop offset="100%" stop-color="#E3A857"/></linearGradient></defs>
-  <rect width="800" height="500" fill="url(#dg)"/><circle cx="680" cy="80" r="46" fill="#FBEFD0"/>
-  <path d="M0 340 Q200 300 400 350 T800 330 V500 H0 Z" fill="#D9924B"/><path d="M0 400 Q220 370 420 410 T800 400 V500 H0 Z" fill="#C67F3B"/>
-  <path d="M120 500 C100 420 130 400 150 500" fill="#5C7A3D"/><path d="M600 500 C580 430 610 410 630 500" fill="#5C7A3D"/>`;
+  <rect width="800" height="600" fill="url(#dg)"/><circle cx="680" cy="90" r="46" fill="#FBEFD0"/>
+  <path d="M0 420 Q200 380 400 430 T800 410 V600 H0 Z" fill="#D9924B"/><path d="M0 480 Q220 450 420 490 T800 480 V600 H0 Z" fill="#C67F3B"/>
+  <path d="M120 600 C100 520 130 500 150 600" fill="#5C7A3D"/><path d="M600 600 C580 530 610 510 630 600" fill="#5C7A3D"/>`;
 }
 function bub(x,y,r){ return `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity=".5"/>`; }
 function buildOcean(){
   return `<defs><linearGradient id="og" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A6D9E8"/><stop offset="100%" stop-color="#2E6E8E"/></linearGradient></defs>
-  <rect width="800" height="500" fill="url(#og)"/>${bub(120,400,14)}${bub(160,340,8)}${bub(700,150,16)}${bub(660,200,9)}${bub(400,80,10)}${bub(300,420,12)}
-  <path d="M50 480 C120 440 180 480 240 450 C300 420 360 470 420 450 C480 430 540 470 600 450 C660 430 720 470 780 450 V500 H50 Z" fill="#1F4E63"/>
-  <ellipse cx="150" cy="460" rx="50" ry="18" fill="#E58FB1" opacity=".7"/><ellipse cx="620" cy="470" rx="60" ry="20" fill="#E58FB1" opacity=".6"/>`;
+  <rect width="800" height="600" fill="url(#og)"/>${bub(120,480,14)}${bub(160,410,8)}${bub(700,180,16)}${bub(660,240,9)}${bub(400,100,10)}${bub(300,500,12)}
+  <path d="M50 580 C120 540 180 580 240 550 C300 520 360 570 420 550 C480 530 540 570 600 550 C660 530 720 570 780 550 V600 H50 Z" fill="#1F4E63"/>
+  <ellipse cx="150" cy="550" rx="50" ry="18" fill="#E58FB1" opacity=".7"/><ellipse cx="620" cy="560" rx="60" ry="20" fill="#E58FB1" opacity=".6"/>`;
 }
 function buildSpace(){
   let s=''; const rnd=mulberry32(7);
-  for(let i=0;i<60;i++) s+=`<circle cx="${(rnd()*800).toFixed(1)}" cy="${(rnd()*500).toFixed(1)}" r="${(1+rnd()*1.8).toFixed(2)}" fill="#fff" opacity="${(0.4+rnd()*0.6).toFixed(2)}"/>`;
+  for(let i=0;i<70;i++) s+=`<circle cx="${(rnd()*800).toFixed(1)}" cy="${(rnd()*600).toFixed(1)}" r="${(1+rnd()*1.8).toFixed(2)}" fill="#fff" opacity="${(0.4+rnd()*0.6).toFixed(2)}"/>`;
   return `<defs><radialGradient id="sg" cx="50%" cy="30%" r="80%"><stop offset="0%" stop-color="#2B2559"/><stop offset="100%" stop-color="#0E0B26"/></radialGradient></defs>
-  <rect width="800" height="500" fill="url(#sg)"/>${s}<circle cx="640" cy="140" r="70" fill="#7A5C9E"/>
-  <ellipse cx="640" cy="140" rx="110" ry="18" fill="none" stroke="#B79FD1" stroke-width="6" opacity=".7"/><circle cx="130" cy="380" r="46" fill="#4A7A9D"/>`;
+  <rect width="800" height="600" fill="url(#sg)"/>${s}<circle cx="640" cy="160" r="70" fill="#7A5C9E"/>
+  <ellipse cx="640" cy="160" rx="110" ry="18" fill="none" stroke="#B79FD1" stroke-width="6" opacity=".7"/><circle cx="130" cy="450" r="46" fill="#4A7A9D"/>`;
 }
 
 const PALETTE=['#FFFFFF','#1D1B18','#8C8C8C','#FF3E7F','#FF7A3C','#FFC93C','#8BE04A','#3FA84A','#3FC1F0','#2E6E8E','#9B6BE8','#A8563E'];
@@ -461,14 +512,14 @@ function bgLayerHTML(id){
   if(e&&e.image) return `<img class="bg-layer" src="${e.image}" alt="">`;
   const d=builtinOf(id);
   if(!d) return `<div class="bg-layer" style="background:#CFC9B8"></div>`;
-  return `<svg class="bg-layer" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${d.build()}</svg>`;
+  return `<svg class="bg-layer" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${d.build()}</svg>`;
 }
 function bgSrc(id){
   const e=bgEntry(id);
   if(e&&e.image) return e.image;
   const d=builtinOf(id);
-  const inner = d ? d.build() : '<rect width="800" height="500" fill="#CFC9B8"/>';
-  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">${inner}</svg>`);
+  const inner = d ? d.build() : '<rect width="800" height="600" fill="#CFC9B8"/>';
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">${inner}</svg>`);
 }
 
 /* ================= round state ================= */
@@ -513,7 +564,7 @@ function goStep(s){ document.querySelectorAll('#wizard > section.step').forEach(
 
 document.getElementById('start-btn').addEventListener('click', async ()=>{
   wizard={ backgroundId:null, pose:'wide', x:50, y:45 };
-  painted=false;
+  painted=false; zoom=1;
   showOnly('wizard'); goStep('bg');
   document.getElementById('bg-grid').innerHTML='<div class="empty">불러오는 중...</div>';
   await loadBgConfig(); buildBgGrid();
@@ -548,11 +599,11 @@ function buildCreate(){
   stage.insertAdjacentHTML('afterbegin', bgLayerHTML(wizard.backgroundId));
   stage.querySelector('.bg-layer').addEventListener('click', eyedropClick);
 
-  const rc=document.createElement('canvas'); rc.width=800; rc.height=500;
+  const rc=document.createElement('canvas'); rc.width=800; rc.height=600;
   bgRaster=rc.getContext('2d');
   const im=new Image();
-  im.onload=()=>{ const s=Math.max(800/im.width,500/im.height), dw=im.width*s, dh=im.height*s;
-    bgRaster.drawImage(im,(800-dw)/2,(500-dh)/2,dw,dh); };
+  im.onload=()=>{ const s=Math.max(800/im.width,600/im.height), dw=im.width*s, dh=im.height*s;
+    bgRaster.drawImage(im,(800-dw)/2,(600-dh)/2,dw,dh); };
   im.src=bgSrc(wizard.backgroundId);
 
   const a=document.getElementById('char-anchor');
@@ -579,16 +630,71 @@ function updateScale(){
   const w=stage.getBoundingClientRect().width; if(!w) return;
   const s=(w*CHAR_FRACTION*zoom)/CANVAS_W;
   inner.style.transform=`translate(-50%,-50%) scale(${s})`;
+  updateHandleSide();
+}
+/* If the character sits near the top of the stage, the handle (which normally
+   floats above the head) would be clipped off-screen. Flip it to sit below
+   the character instead, using its actual current height so it clears
+   correctly at any zoom level. */
+function updateHandleSide(){
+  const stage=document.getElementById('create-stage');
+  const inner=document.getElementById('char-inner');
+  const handle=document.getElementById('drag-handle');
+  if(!stage||!inner||!handle) return;
+  const stageH=stage.getBoundingClientRect().height; if(!stageH) return;
+  const halfCharPx=inner.getBoundingClientRect().height/2;
+  const handleH=handle.getBoundingClientRect().height||38;
+  const gap=8;
+  const anchorYpx=(wizard.y/100)*stageH;
+  const spaceAbove=anchorYpx-halfCharPx;
+  if(spaceAbove < handleH+gap){
+    handle.style.transform=`translate(-50%, ${(halfCharPx+gap).toFixed(0)}px)`;
+  }else{
+    handle.style.transform='translate(-50%,-160%)';
+  }
 }
 window.addEventListener('resize',()=>{ if(document.getElementById('step-create').classList.contains('active')) updateScale(); });
 window.addEventListener('orientationchange',()=>setTimeout(updateScale,300));
 
-document.getElementById('zoom-btn').addEventListener('click',()=>{
-  zoom = zoom===1?3:(zoom===3?6:1);
-  document.getElementById('zoom-badge').textContent='확대 '+zoom+'x';
-  document.getElementById('zoom-btn').classList.toggle('on', zoom!==1);
-  updateScale();
-});
+function setZoomLabel(){
+  document.getElementById('zoom-badge').textContent='확대 '+(Math.round(zoom*10)/10)+'x';
+}
+
+/* two-finger pinch to zoom while painting (iPad-friendly) */
+(function(){
+  const stage=document.getElementById('create-stage');
+  const active=new Map(); // pointerId -> {x,y}
+  let pinching=false, startDist=0, startZoom=1;
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  stage.addEventListener('pointerdown', e=>{
+    active.set(e.pointerId, {x:e.clientX,y:e.clientY});
+    if(active.size===2){
+      pinching=true; drawing=false; // cancel any single-finger stroke in progress
+      e.stopPropagation(); // don't let this second finger also start a draw dab
+      const pts=[...active.values()];
+      startDist=dist(pts[0],pts[1]); startZoom=zoom;
+    }
+  }, true);
+  stage.addEventListener('pointermove', e=>{
+    if(!active.has(e.pointerId)) return;
+    active.set(e.pointerId, {x:e.clientX,y:e.clientY});
+    if(pinching && active.size===2){
+      e.preventDefault();
+      const pts=[...active.values()];
+      const d=dist(pts[0],pts[1]);
+      if(startDist>0){
+        zoom=Math.max(1, Math.min(8, startZoom*(d/startDist)));
+        setZoomLabel(); updateScale();
+      }
+    }
+  }, true);
+  function release(e){
+    active.delete(e.pointerId);
+    if(active.size<2) pinching=false;
+  }
+  stage.addEventListener('pointerup', release, true);
+  stage.addEventListener('pointercancel', release, true);
+})();
 
 function buildPoses(){
   const r=document.getElementById('pose-row'); r.innerHTML='';
@@ -630,7 +736,7 @@ function syncTools(){
   document.getElementById('size-dot').style.width=Math.max(10,bsize*0.55)+'px';
   document.getElementById('size-dot').style.height=Math.max(10,bsize*0.55)+'px';
   document.getElementById('eraser-btn').classList.toggle('on',eraser);
-  document.getElementById('zoom-badge').textContent='확대 '+zoom+'x';
+  setZoomLabel();
 }
 document.getElementById('brush-color-picker').addEventListener('input',e=>setBrush(e.target.value));
 document.getElementById('brush-size').addEventListener('input',e=>{ bsize=+e.target.value;
@@ -666,9 +772,9 @@ document.getElementById('eyedrop-btn').addEventListener('click',()=>{
 function eyedropClick(e){
   if(!eyedrop||!bgRaster) return;
   const r=e.currentTarget.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)*(800/r.width)), y=Math.floor((e.clientY-r.top)*(500/r.height));
+  const x=Math.floor((e.clientX-r.left)*(800/r.width)), y=Math.floor((e.clientY-r.top)*(600/r.height));
   try{
-    const d=bgRaster.getImageData(Math.max(0,Math.min(799,x)),Math.max(0,Math.min(499,y)),1,1).data;
+    const d=bgRaster.getImageData(Math.max(0,Math.min(799,x)),Math.max(0,Math.min(599,y)),1,1).data;
     setBrush('#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join(''));
   }catch(err){}
   eyedrop=false;
@@ -694,6 +800,7 @@ function makeDraggable(){
     let x=((e.clientX-r.left)/r.width)*100+ox, y=((e.clientY-r.top)/r.height)*100+oy;
     x=Math.max(4,Math.min(96,x)); y=Math.max(6,Math.min(96,y));
     a.style.left=x+'%'; a.style.top=y+'%'; wizard.x=x; wizard.y=y;
+    updateHandleSide();
   });
   h.addEventListener('pointerup',()=>{ dg=false; });
   h.addEventListener('pointercancel',()=>{ dg=false; });
@@ -823,7 +930,7 @@ function renderAdmin(){
 }
 
 /* ================= PNG export ================= */
-const EX_W=1600, EX_H=1000;
+const EX_W=1600, EX_H=1200;
 function loadImg(src){
   return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('img')); i.src=src; });
 }
@@ -888,7 +995,7 @@ async function exportAll(){
   pngStatus('사진 만드는 중...');
   try{
     const cols=used.length>1?2:1, rows=Math.ceil(used.length/cols);
-    const cellW=800, cellH=500, pad=16, labelH=44;
+    const cellW=800, cellH=600, pad=16, labelH=44;
     const cv=document.createElement('canvas');
     cv.width=cols*cellW+pad*(cols+1);
     cv.height=rows*(cellH+labelH)+pad*(rows+1);
@@ -950,7 +1057,7 @@ function processImg(f){
       const im=new Image();
       im.onerror=()=>rej(new Error('img'));
       im.onload=()=>{
-        const W=960,H=600, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+        const W=960,H=720, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
         const c=cv.getContext('2d');
         const s=Math.max(W/im.width,H/im.height), dw=im.width*s, dh=im.height*s;
         c.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);
