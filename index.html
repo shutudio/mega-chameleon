@@ -94,6 +94,7 @@
   }
   .stage > .bg-layer{ width:100%; height:100%; display:block; object-fit:cover; }
   .stage.eyedrop{ cursor:crosshair; }
+  .viewport{ position:absolute; inset:0; transform-origin:50% 50%; }
   .char-anchor{ position:absolute; width:0; height:0; left:0; top:0; }
   .char-inner{ position:absolute; width:260px; height:340px; left:0; top:0; transform:translate(-50%,-50%) scale(.2); transform-origin:center center; touch-action:none; }
   .char-inner canvas{ width:260px; height:340px; display:block; touch-action:none; }
@@ -223,19 +224,23 @@
         <div class="workarea">
           <div class="stagecol">
             <div class="stage" id="create-stage">
-              <div class="char-anchor" id="char-anchor">
+              <div class="viewport" id="stage-viewport">
+                <div class="char-anchor" id="char-anchor">
+                  <div class="char-inner" id="char-inner">
+                    <canvas id="paint-canvas" width="260" height="340"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="char-anchor" id="handle-anchor">
                 <div class="drag-handle" id="drag-handle">
                   <svg viewBox="0 0 24 24" fill="none" stroke="#1D1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 3 L12 21 M3 12 L21 12 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>
                   </svg>
                 </div>
-                <div class="char-inner" id="char-inner">
-                  <canvas id="paint-canvas" width="260" height="340"></canvas>
-                </div>
               </div>
               <div class="zoom-badge" id="zoom-badge">확대 1x</div>
             </div>
-            <p class="hint">손잡이를 끌어 옮기고, 몸을 문질러 색칠하세요. 두 손가락으로 오므리고 펴면 확대돼요.</p>
+            <p class="hint">손잡이를 끌어 옮기고, 몸을 문질러 색칠하세요. 두 손가락으로 오므리고 펴면 배경까지 확대돼요.</p>
           </div>
 
           <div class="toolcol">
@@ -595,9 +600,10 @@ let drawing=false, lx=0, ly=0, bgRaster=null, zoom=1;
 
 function buildCreate(){
   const stage=document.getElementById('create-stage');
-  const old=stage.querySelector('.bg-layer'); if(old) old.remove();
-  stage.insertAdjacentHTML('afterbegin', bgLayerHTML(wizard.backgroundId));
-  stage.querySelector('.bg-layer').addEventListener('click', eyedropClick);
+  const viewport=document.getElementById('stage-viewport');
+  const old=viewport.querySelector('.bg-layer'); if(old) old.remove();
+  viewport.insertAdjacentHTML('afterbegin', bgLayerHTML(wizard.backgroundId));
+  viewport.querySelector('.bg-layer').addEventListener('click', eyedropClick);
 
   const rc=document.createElement('canvas'); rc.width=800; rc.height=600;
   bgRaster=rc.getContext('2d');
@@ -606,8 +612,7 @@ function buildCreate(){
     bgRaster.drawImage(im,(800-dw)/2,(600-dh)/2,dw,dh); };
   im.src=bgSrc(wizard.backgroundId);
 
-  const a=document.getElementById('char-anchor');
-  a.style.left=wizard.x+'%'; a.style.top=wizard.y+'%';
+  setCharPosition(wizard.x, wizard.y);
 
   pc=document.getElementById('paint-canvas'); ctx=pc.getContext('2d');
   if(!painted){ ctx.fillStyle=BLANK; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); painted=true; }
@@ -624,12 +629,27 @@ function buildCreate(){
       `${bgName(wizard.backgroundId)} · 지금 ${s.count}명 숨어있음 (내가 ${s.count+1}번째 / ${ROUND_LIMIT}명)`;
   });
 }
+/* char-anchor (inside the zoomed viewport) and handle-anchor (outside it, so the
+   handle stays a fixed on-screen size) always share the same % position, and
+   the viewport zooms around that same point so the character never drifts. */
+function setCharPosition(x,y){
+  wizard.x=x; wizard.y=y;
+  document.getElementById('char-anchor').style.left=x+'%';
+  document.getElementById('char-anchor').style.top=y+'%';
+  document.getElementById('handle-anchor').style.left=x+'%';
+  document.getElementById('handle-anchor').style.top=y+'%';
+  document.getElementById('stage-viewport').style.transformOrigin=x+'% '+y+'%';
+}
 function applyPose(){ pc.style.clipPath=`path('${buildPosePath(wizard.pose)}')`; }
 function updateScale(){
   const stage=document.getElementById('create-stage'), inner=document.getElementById('char-inner');
   const w=stage.getBoundingClientRect().width; if(!w) return;
-  const s=(w*CHAR_FRACTION*zoom)/CANVAS_W;
+  // character keeps its fixed on-screen size relative to the stage...
+  const s=(w*CHAR_FRACTION)/CANVAS_W;
   inner.style.transform=`translate(-50%,-50%) scale(${s})`;
+  // ...and "zoom" instead magnifies the whole scene (background + character)
+  // around the character's own position, so it stays put while the world scales.
+  document.getElementById('stage-viewport').style.transform=`scale(${zoom})`;
   updateHandleSide();
 }
 /* If the character sits near the top of the stage, the handle (which normally
@@ -784,7 +804,7 @@ function eyedropClick(e){
 
 /* drag */
 function makeDraggable(){
-  const h0=document.getElementById('drag-handle'), a=document.getElementById('char-anchor'), stage=document.getElementById('create-stage');
+  const h0=document.getElementById('drag-handle'), stage=document.getElementById('create-stage');
   const h=h0.cloneNode(true); h0.parentNode.replaceChild(h,h0);
   let dg=false, ox=0, oy=0;
   h.addEventListener('pointerdown',e=>{
@@ -799,7 +819,7 @@ function makeDraggable(){
     const r=stage.getBoundingClientRect();
     let x=((e.clientX-r.left)/r.width)*100+ox, y=((e.clientY-r.top)/r.height)*100+oy;
     x=Math.max(4,Math.min(96,x)); y=Math.max(6,Math.min(96,y));
-    a.style.left=x+'%'; a.style.top=y+'%'; wizard.x=x; wizard.y=y;
+    setCharPosition(x,y);
     updateHandleSide();
   });
   h.addEventListener('pointerup',()=>{ dg=false; });
