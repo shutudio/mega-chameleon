@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MEGA CHAMELEON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1D1B18; --ink-soft:#6B6862;
+    --paper:#F2EFE6; --card:#FFFFFF; --card-2:#F7F4EC;
+    --line:#DDD8C9; --line-2:#C7C1AE;
+    --brand:#111111;
+    --hot:#FF3E7F; --lime:#8BE04A; --sky:#3FC1F0; --sun:#FFC93C; --grape:#9B6BE8;
+    --blank:#F4F1E8;
+    --r:20px;
+    --tap:56px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; overscroll-behavior:none; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Baloo 2','Apple SD Gothic Neo',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+    touch-action:manipulation;
+  }
+  h1,h2,h3{ margin:0; font-weight:700; }
+  .app{ max-width:1180px; margin:0 auto; padding:14px 20px 40px; padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+
+  /* ---- top bar ---- */
+  .bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ height:44px; display:block; }
+  .brand .wordmark{ font-size:1.35rem; font-weight:800; letter-spacing:-0.01em; line-height:1; }
+  .brand .wordmark span{ display:block; font-size:0.72rem; font-weight:600; color:var(--ink-soft); letter-spacing:0.16em; }
+
+  /* ---- buttons: all touch-sized ---- */
+  .btn{
+    font-family:inherit; font-size:1.05rem; font-weight:700; color:#fff; background:var(--ink);
+    border:none; border-radius:16px; padding:0 26px; min-height:var(--tap); cursor:pointer;
+    box-shadow:0 5px 0 #000; transition:transform .06s, box-shadow .06s;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn:active{ transform:translateY(4px); box-shadow:0 1px 0 #000; }
+  .btn.ghost{ background:var(--card); color:var(--ink); border:3px solid var(--ink); box-shadow:0 5px 0 var(--line-2); }
+  .btn.ghost:active{ box-shadow:0 1px 0 var(--line-2); }
+  .btn.hot{ background:var(--hot); box-shadow:0 5px 0 #C42B60; }
+  .btn.hot:active{ box-shadow:0 1px 0 #C42B60; }
+  .btn.lg{ font-size:1.4rem; min-height:72px; padding:0 44px; border-radius:20px; }
+  .btn:disabled{ opacity:.4; }
+  .linkbtn{
+    background:none; border:none; font-family:inherit; font-size:1rem; font-weight:600; color:var(--ink-soft);
+    min-height:var(--tap); padding:0 14px; cursor:pointer; border-radius:14px;
+  }
+  .linkbtn:active{ background:var(--card-2); }
+  .row{ display:flex; gap:14px; align-items:center; }
+  .row.end{ justify-content:flex-end; }
+  .spacer{ flex:1; }
+
+  .card{ background:var(--card); border:3px solid var(--ink); border-radius:var(--r); padding:20px; }
+
+  section.step{ display:none; }
+  section.step.active{ display:block; }
+  .hidden{ display:none !important; }
+  #admin-gate, #admin-dash{ display:block; }
+
+  /* ---- home ---- */
+  #home{ text-align:center; padding-top:12px; }
+  #home .stage-art{ width:min(340px,72vw); margin:0 auto; display:block; }
+  .title-art{ width:min(560px,92%); margin:4px auto 10px; display:block; }
+  #home p{ color:var(--ink-soft); font-size:1.1rem; margin:0 auto 22px; max-width:520px; line-height:1.55; }
+
+  /* ---- background picker: big tap tiles ---- */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-top:16px; }
+  .tile{
+    border:3px solid var(--ink); border-radius:18px; overflow:hidden; cursor:pointer; background:var(--card);
+    padding:0; position:relative; transition:transform .08s;
+  }
+  .tile:active{ transform:scale(.97); }
+  .tile .thumb{ height:130px; overflow:hidden; }
+  .tile .thumb > *{ width:100%; height:130px; object-fit:cover; display:block; }
+  .tile .tname{ padding:12px 10px; font-size:1.05rem; font-weight:700; text-align:center; }
+  .tile.selected{ box-shadow:0 0 0 5px var(--hot); }
+  .tile.selected .tname{ background:var(--hot); color:#fff; }
+
+  /* ---- create stage ---- */
+  .stage{
+    position:relative; width:100%; aspect-ratio:8/5; border-radius:18px; overflow:hidden;
+    border:3px solid var(--ink); background:#ccc; touch-action:none;
+  }
+  .stage > .bg-layer{ width:100%; height:100%; display:block; object-fit:cover; }
+  .stage.eyedrop{ cursor:crosshair; }
+  .char-anchor{ position:absolute; width:0; height:0; left:0; top:0; }
+  .char-inner{ position:absolute; width:260px; height:340px; left:0; top:0; transform:translate(-50%,-50%) scale(.2); transform-origin:center center; touch-action:none; }
+  .char-inner canvas{ width:260px; height:340px; display:block; touch-action:none; }
+  .drag-handle{
+    position:absolute; left:0; top:0; transform:translate(-50%,-165%);
+    width:52px; height:52px; border-radius:50%; background:#fff; border:4px solid var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:grab; touch-action:none; z-index:5;
+    box-shadow:0 3px 0 rgba(0,0,0,.3);
+  }
+  .drag-handle svg{ width:26px; height:26px; display:block; }
+  .zoom-badge{
+    position:absolute; right:12px; bottom:12px; background:rgba(0,0,0,.62); color:#fff;
+    font-size:.85rem; font-weight:600; padding:7px 12px; border-radius:12px; pointer-events:none;
+  }
+  .hint{ text-align:center; color:var(--ink-soft); font-size:.98rem; margin:12px 0 0; }
+  .roundinfo{ font-size:1rem; color:var(--ink-soft); margin:2px 0 14px; font-weight:600; }
+
+  /* ---- paint dock: iPad two-column ---- */
+  .dock{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; padding-top:18px; border-top:3px dashed var(--line-2); }
+  @media (max-width:820px){ .dock{ grid-template-columns:1fr; } }
+  .dockblock h3{ font-size:.95rem; color:var(--ink-soft); margin-bottom:9px; letter-spacing:.02em; }
+
+  .swatches{ display:grid; grid-template-columns:repeat(auto-fit,minmax(46px,1fr)); gap:9px; }
+  .swatch{ height:46px; border-radius:12px; border:3px solid rgba(0,0,0,.16); cursor:pointer; }
+  .swatch.active{ border-color:var(--ink); box-shadow:0 0 0 4px var(--sun); }
+  .pickrow{ display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  input[type=color]{ width:var(--tap); height:var(--tap); border:none; border-radius:14px; background:none; padding:0; cursor:pointer; }
+  .poses{ display:flex; gap:10px; flex-wrap:wrap; }
+  .posebtn{ border:3px solid var(--ink); border-radius:14px; background:var(--card); width:78px; padding:5px; cursor:pointer; }
+  .posebtn svg{ width:100%; height:62px; display:block; }
+  .posebtn .pn{ font-size:.78rem; font-weight:700; text-align:center; margin-top:2px; }
+  .posebtn.selected{ background:var(--sun); box-shadow:0 0 0 4px rgba(255,201,60,.45); }
+  .sizerow{ display:flex; align-items:center; gap:14px; }
+  input[type=range]{ flex:1; height:var(--tap); accent-color:var(--hot); }
+  .sizedot{ border-radius:50%; background:var(--ink); flex-shrink:0; }
+  .toolrow{ display:flex; gap:10px; flex-wrap:wrap; }
+  .toolbtn{
+    font-family:inherit; font-weight:700; font-size:.98rem; min-height:var(--tap); padding:0 18px;
+    border-radius:14px; border:3px solid var(--ink); background:var(--card); cursor:pointer;
+  }
+  .toolbtn.on{ background:var(--ink); color:#fff; }
+  .nameinput{
+    width:100%; min-height:var(--tap); padding:0 16px; border-radius:14px; border:3px solid var(--ink);
+    font-family:inherit; font-size:1.15rem; font-weight:700; background:var(--card);
+  }
+  .warn{ color:var(--hot); font-size:.9rem; font-weight:700; min-height:18px; margin-top:6px; }
+
+  /* ---- saved ---- */
+  #saved-step{ text-align:center; }
+  #saved-step .yay{ width:110px; margin:6px auto 12px; display:block; }
+  #saved-step h2{ font-size:1.7rem; }
+  #saved-step p{ color:var(--ink-soft); font-size:1.05rem; margin:10px 0 24px; }
+
+  /* ---- admin ---- */
+  #admin-gate .card{ max-width:420px; margin:50px auto; text-align:center; }
+  #admin-gate input{ width:100%; min-height:var(--tap); padding:0 16px; border-radius:14px; border:3px solid var(--ink); font-family:inherit; font-size:1.4rem; text-align:center; letter-spacing:.3em; margin:16px 0 4px; }
+  .subtabs{ display:flex; gap:10px; margin-bottom:16px; }
+  .subtab{ min-height:var(--tap); padding:0 22px; display:flex; align-items:center; border-radius:14px; border:3px solid var(--ink); background:var(--card); font-weight:700; cursor:pointer; }
+  .subtab.active{ background:var(--ink); color:#fff; }
+  .bgtabs{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .bgtab{ min-height:48px; padding:0 18px; display:flex; align-items:center; border-radius:12px; border:3px solid var(--ink); background:var(--card); font-weight:700; cursor:pointer; }
+  .bgtab.active{ background:var(--lime); }
+  .adminwrap{ display:grid; grid-template-columns:1fr 260px; gap:18px; align-items:start; }
+  @media (max-width:900px){ .adminwrap{ grid-template-columns:1fr; } }
+  .adminlist{ display:flex; flex-direction:column; gap:10px; }
+  .aitem{ display:flex; gap:12px; align-items:center; border:3px solid var(--ink); border-radius:14px; background:var(--card); padding:9px; cursor:pointer; min-height:var(--tap); }
+  .aitem img{ width:38px; height:50px; object-fit:contain; }
+  .aitem.sel{ background:var(--sun); }
+  .aname{ font-weight:700; font-size:1rem; }
+  .atime{ font-size:.8rem; color:var(--ink-soft); font-weight:600; }
+  .atoken{ position:absolute; width:6.25%; transform:translate(-50%,-50%); pointer-events:none; }
+  .atoken img{ width:100%; display:block; }
+  .atoken.hi{ animation:pop 1s ease-in-out infinite; }
+  @keyframes pop{ 0%,100%{ filter:drop-shadow(0 0 3px var(--sun)); } 50%{ filter:drop-shadow(0 0 12px var(--sun)); } }
+  .empty{ color:var(--ink-soft); text-align:center; padding:24px; font-weight:600; }
+  .bgman{ display:flex; flex-direction:column; gap:14px; }
+  .bgrow{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; border:3px solid var(--ink); border-radius:16px; background:var(--card); padding:12px; }
+  .bgrow .bgthumb{ width:170px; height:106px; border-radius:10px; overflow:hidden; border:3px solid var(--ink); flex-shrink:0; }
+  .bgrow .bgthumb > *{ width:100%; height:100%; object-fit:cover; display:block; }
+  .bgrow .bgmeta{ flex:1 1 170px; min-width:160px; }
+  .bgrow input[type=text]{ width:100%; min-height:48px; padding:0 12px; border-radius:12px; border:3px solid var(--ink); font-family:inherit; font-size:1rem; font-weight:700; }
+  .bgstate{ font-size:.82rem; color:var(--ink-soft); font-weight:600; margin-top:5px; }
+  .status{ min-height:24px; font-weight:700; color:var(--lime); margin-top:12px; }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="bar">
+    <div class="brand">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMkAAADcCAYAAADa3YUtAAAfeUlEQVR42u2dedxd07nHv+e8J0EzECSlhtYUs5gqxUWj5BpDWkWLqnmosXRwVQeuqk4kRQdFleu2qEqC9tKBe6+iqmIKoUKpJHXNEkm873vO/eN5lr3enXPeca199j7neT6f/TnvuIe113f9nmcNzyoBGwJbAjXCWw0oA48Dz+jXVYpj7n7XBybo16UI1ykBfwZe0q9rwFrARL1mkcqsVays7+IxgKn6UmIejwIbeRcvSiEBrA3cn0EZ7aTX69DPnTK4ph19H1MrkRTEt6oq1W3A/sDTBVAUd39rAzOAbfX7mIDXGnzfBczL4D2Z9bT1gOFArZJRhesCxgMzgSk5B6UeIF1AJeP7cFC8BmwPLPJcMbM45sq3BDypdbaa1YuvAN3AxjkHxd3POsCtTQSknhrXDJDMGqZauvJmZR0eKLNy6HrlFRDXwpVMSTJVkqZA4oMyXkGZAszNASg+IDOAbXIESK+tnFn02LApPU0+KDNVWao0r9erCICYNbkFpY1BMUDMcgtJPdcra1B8QGYaIGZ5hMQHZSMFZZOMQHGArKuAbG2AmOUVkmaA4gMywwAxKwIkPigbRgbFADErLCT1QNk0MCjmYpkVHpI0KDMDguIA+aCed4IBYlZUSGKA4gMywwAxawVIQrpeDpD1TEHMWg0SH5QNFJTNBgiKA2QDZJr+VgaIWatBkgZl5gBA8QFx/2eAmLUkJIMBxQAxaztI6rlemzcAxQdklgHSq5Xs6PUoHCQ+KOurQqRBcYD4wb4B0rhxtPXryx9V7/M9K1oFSoMyBXhCn6OLnt3GBkhjqwLD9LD1KT3VtZZWkyJWojQoByApizZCxkEMkL47NCYBPwFWIk6KpFawca7MilqRfFBmACcD3zNA+m0Xqeqa9UNdilyZOkgSx/3WcyMMkL5tmZbVOcCdwCgsAV491wvg+aJXKOc+OF+ybO92QGX3d2C2FUXvVmmRl4351oOyFbT8ipZ+NkurmWvS5hXAg8Mg6aMVNjMzM0jMzAwSMzODxMyslSFxc2KKahbUGiRRzY1fFDXZs42/GCTRrRO4ymuNiwSKG6icg00ENEgitsLDgR8DJ3pqUoQK16XlMx04X++926qMQRLLVgOuBM6i51qGPANSAa4HTgdWtKpikMS2br3W94Ezcw6KA+Ra4JiMy8ksh5bltBQ3Q/dSheNSL04p5RCQ4zz3yuIRU5JMQSkD04AzcqYoDpCfKSCdpiBmWStJPVDIiaKkAenSe7HxEbOmtZQ+KKc3WVEaAWIullnTA1IHyvQmguIAucYAMcuTu9UIFFRZsnK9fECON0DM8qgk9UA5LSNFMUDMCqMkaVB+oN9Pj6goDpCrgRMMkPfK2JY/17dcLd/NAhQDZHlPoggzIExJGoBS089QoKQB6W5jQFyZLiEZ5DVI6itspZLTF1gGLtPvQ4DiALkKmWjZ7iPpo7QMvgAchUxCNUh6WofWt/Pzmi3FB6Wmn4MFxQek3RXEld3vge2A7Y2FPm1MnlMKOVAu1+8HA0oakGqbxyBOQb8EPIDkAq5a0N6jEXEJsy8G1gA68553ayigOEB+qi5WERd9xbRbrAh6tXOBtfIYuIcCxQDpv89tVl9J3mOjKBkcfVBq+tkIFANkYK6XWX1I3qsvRZoK7kC5Avgc9fv3HSBXGiBmoaxouYB9UGr66W/h5QA5yQAxC2VFXFTkQPkhsnmPUxQDxMwgaQDKSfozc7HMzN2qA0oJ+BEwD7gfGwcxM0iWM9cTcWeqd8LMrO3drXqgmItlZpD0AYqZmUFiZmaQmJkZJGZmBomZmUFiZmaQmJmZ9bCKFUFbWglZT2K2fLm4cbeSQdLeVkOWFZg1ti6DxFrKI7E17r3ZKujCNIOk/WLQbiTn8qlWHP2yYQZJ+7lZADsqLPcBC4AVsL1Y6sXrJeAVg6Q9bZEG7tOAm604TEnM6rtdACP0a9vVq7F1GiTtbVWSVZ42k7qPFsXMzMwgMTMzSMzMDBIzM4PEzMwgMTMzSMzMDBIzM4PEzMzMIDEzM0jMzAKazd0qhpVILSkd4nnMDJKWs3dZflevwVi7719vkLSguaW2awKLGXrWfPf/wwwUg6SVXKyxwOOBKrWDZEUsY4pB0iK2TD9XjOC+dZuaGCRFdrEA5gITA8Ui9awMvIytSjRICmyv6WFmkET16Xv7vjer5uT+sxjHqg3wb2sNVKlllb3SQjCU+niZRfO/ayRdtnm3lnbXKi0ARaMtqYcj2UBG6jECyS81TI9G5+4G/gK8SXMH3tYAts4J3DVVi2eQnY798l4T2JaeYzCt0CHg1PGpSoHAaATFcH1R6wMbARsCHwTWQrpPVwFGISk9+2OvAlspJM1sBDYAfpOz9zALOJBk/KaG9JRdquXeinZQpSBwVD0ohmkF2g7p/dlG4Xh/H+daAryDdKt20TMvbk1VdU2S0e08uDB5apGrwL7AJOD3JPm6XgW+BfxUy/W1JjYwIW1dbYC7s4BkoP3xJa/iumMlhWEPfUlbq0KkX+Lfgb8BTwPPAi8gaTzdi1uiEFRTbkQV2Az4a847H5rtcnUAZwN3e2VYAm4ETge2UJdst9Q7LJIr7xrOJ4CNYwfuNa9gKwOAw29BtwD212P7VCyxGHgEuF+Px4DngaWDvN+lmPUVv1aBydpQ/c7z298GpgNXAjsDewG3ew2QBe4N1KNDK/1/ALPpfd5R2YPjfcCewOGqHL5izAf+qL76vQpFvXOV68AKjbsvq9gUjYGoyVn6Hnw1+SVwmjZsX9V3VLRZx76S9LADU67NUI9O/XwNOKafPQgoDMcAf0qd7w19AZ8AVq3zUBU9yoN8Ie4eNtfrzdfYBA+cz5JsfFOLdOyYuuaOEa81lKNbjz3rNErHen+3f+p5igKJ+3xKn+OAkJBUvUr0ADDBK8RSL71VI4HjgIdT53sM+IL2VPnW4UERsqvPIOnf4crgtyTbE7hjlLrAVa0DWQ2IFgKSqhegXwOs3Esr0uHdyMc1nvDPdQ9wsPYs+P/TEUm6DZLBq8nkOmpyTB01qbQ7JN0eKF9u4Eqlv58A3JI6z93APnViptgtkUEyeDW5qx9qUi6QmtSFZKg3360FsFgD7W9Rf7+LDv1+JeAcDfqm6u8eBQ4BPgrcQbLOoaQvw2ao5s/c+9xDYxN/x1rX01UCdgD2K3rHSHmIgHQAr2iFv8ErvJpHpNunbzvt8fgmMAZ4HfgSMiB4oweHr05m+e7pAhk3GeapjBs3eVS/P5eC739SHiIg89XvvEu/706d27lhJ+vf7Ka/u1Xh+DYyPuHDYVYsNZnUQE2mtYqalIcAyEvAFA286wFSVcW4Brhcv35VuwmnIiOzzp81OIqrJiVk3CStJjdpbFIDvlJkNRkoJK41WKhR/0N1AHEtzKbqXn1Wf363BqNX6d+UvQDQrPhqMrmX2OTDnppUWhkSt7feG8BBDQBx8cfuwJ3qUgF8B/iYpx7dFpC3nJo0ik3SalJtVUhca78M6cW6txcX6xCNOdZGtkI+DPgiyWTCLqtXLakmH0XmbPlqsiilJvsXMTYp9xMQpyKnIBPXGgFyLPBzpK/8RaSL8AZPYk09WldNQGZIDO9FTQrZ09UfSFygfhGyZqARICcDP9JCehTYFRlMqljs0TZqsguwdx01mVZkNSn3A5AKMAOZ2VluAMhxwA/0wf+kMcnzHiBm7aMmZ9VRk0L3dJX7CNQ7kAVMJ9ZRAwfIp4Ar9Pv71C99Vf83b4CUejl6sy7v/836VpN9elGT7ZGhA9fTVcrp0SckrhVYBhyPdPn69DtA9kAW2lSQWbv7IV1/aZcsaxDcTOEKSXez/1zpyZl9raCzWGpganI2knQjrSazvdjEjY/laU5a1fvsExIXh5yPzMrtoOcCmyoyIfA6JAvJi8j659eaAIgPhVs0062tfxc9u5vLdY4O79MsjJrs3A81OUi/Ht7gvTTjqFsXKqkWwI9D7ga+l4pDnAytBlyPpL1ZjMwkfjFjQNyDdaWuORbYBBnMHI8s6B+HLOpaqReXqR0zrdciuJC+mtyB5BRwdedm4ExgS+0EujDHZbOuK596K/oqSNKEM9TdKqVabYDLkGQMAEchCRSyCtLLnlS7uGkHZMR3V2Qa/mpDOP/wNoo9ShFAcWqyk8YeN3keyyLg+8DPgNF65F4dK8jI+V5eK1BGZug+Rs916S4OOQM4VH92kRbCMGTZbhadDM51Gq+dBlNJVkE6WwY8h2ROmacq97LC/w69r7XvVnXMsiWvNqGTo6ru8eqRe7pmkWTHLyEDzXvV8WDy2qn1VF+tTPrridoa1IA/eMoTs+VN76OxEzJAuSgVdD2DTKY8Gkk/NCZgQX2anlP4QweKXeqnQzaLrqp6XAS8leq8CLl6sQZ8sh89qYWQ3HQAU6rz+1HAg/rgrwDrEH8Nsw/HBGT01q+oLwPXakw0tp/P1p+j1SFx3flTNTaIserSne9+kk2DSr10oOT1KA2kNb3AK4BPpQL/GObOPRK4WF0gd/1nkcHN8Q2C+VCpbFodkkM1iO70YrwYanJwK6hJXy7Xh71KenNkQHx1mkSyFZpbf/4VkjXoDJR4g6QHJEfrtX4VWU3+7PUstlynSFl7e+4kyaX1gYhuln/O87xC7gKupmdS5nIGBd7qkBylZbgzSfrXWGpyaCuqiXuYw7wHPiWiirjKMUJ7zNw1n9aYw/+7UsZl0KqQfNZ7zl9GVpOHkOycLaMm7kFWQRIHV5EpBZVIldRVjDXomYfrJmQLhayUo10hAfiIdtXGVJPDiqgm5V4gcYW4mX7/Za8vvxYYkG51436n3cxV4BvIAq6X6Jkr2CxOJ8kDOoYRY6NR994+r2pSo+Bq4lRkdWQwrqqVN90lG1JBPqCKVUO2Rzg6dS/NbkRaXUkqXgfN0shqcnjR1KTci4ochmyWA/C1SNfuRjbfuUsVyyW5u5pk1rGpR3xzMy0e1J6u2GoyokhqUm4AyMrIQqoasqvRvSy/4CpE1/II4DYFZClwpL6kDmx6etaQOLtEY5PQC6PcO90GyQFdeEj2Q6bCl4Dvpip2CEBcgV2nbkYV+JwHiOXhap6a/AUZCzM1aQCJ2zvwSP16trpCIRPIuRWLXyXJB3yBulgGSH7UZGkkNelGZpAfXMQAvuwFb0v0AU5MBXahAvXdvMDQqUc5x2XSDuMk6We+jrjjJo8iU45yP25Sr2J+ApmQ9ioyTkGg1t25ciORLI4lZBr7qViC7DxabDXZEpkhXCsKJM7/HK3xSA1ZB+ASOtQCXasKfB3pNetGVqnNp+BZxyNZzIrT0Usj6XKs/RUZhY8Rmzg7E5ldnmtQKqlWfiKy7LWErNkoBYTRrYs/1ZPzmRQj9WUtg/OnNz99FkkNW4sI4XMNIKh5anKwehYhK3JaTa4uQkPpWpTv6o0+h8zaDNWiuZbrVj3/P4H1C+CPunL5TCT/vOodEzNQkME8+9URY5MqMst7VN7rgruxlZDuvyqSiTFUwO4AmegFquf1IvcDvfeYh7u/vbzAPeRItIvF3iGZ/lP2PjsiH/3JHLK1duTEGIV34B0bqD5EbzG29Xq1pkSA5GYt5OeRiYxFmQ3qKu3pgUHxAfl4zivJ5ZHUxJXlHGQAO5d1wl+fPlF9z9eRVKUherXcKP2G2iFQUvleGCAWGYWkCooVM5S0LF7Te52m15lGzxxkgzEXHC9Bpv/82vPT1/eC2WE58DI6kfVER0WITVz92BRZb/LjPMYmFe+GPqKfDyFr2EME1O4cn0Ey+r3qdQjUhvDiasjqxD8Qp6/duRZPIkuVX9Cymq6/HwooPiCf1jjNZZvZHcnKvxrLJ8BoJihdxEv44d7nGcAvkMQUJXIYxI8gSUH5tUCulqu4w1ROq1oBhhqcuv8dT5IeyCWoC3k4l+AvSNILv0xOG6Tr5btYB+q5nFp8VBuRWhsezo07MY9up3vp65DM+H0gkAvjpHR7JKNiCRldJ1BL4SpdJ7L8NIQL52KoKvAvSBK17bS1PxDJ3+UUpaaf/VUUpyDvqILM8BRkkpbNGJIUs3lrSWOnjfLV5M08qsl+Xgu3diCaHYDnk2Q4WT2gkmyE5N7qpH46oRB2kJ7fLT9NK8qp/VQUpyCLkb0mfQWZpHFPjMC4iGpyUl47Mc7UG3w84M25ynyPnvuagN2+aUjW0fNWCJdvyVXiT6RAWTcFyil9gNJfQLrbGBC//OYiy8Zz19PluvhuSXXbDrUij9UeIj99TQxI1orU+vigvKvP8dcBgOIDMiV1zt1NQRqqyal5U5MSMk+rhqS9DBG0O8h21fMuJUmwXSoQJH6l/vgAQekvIN0Gx3Jq8gywap7UZKT24Pgjn0OFxP3/iXreJ1VCiwhJI1AeBj6Yet7PpVpEA2TwanJantTkA8hcrRqyfUEId8tVmu+RzCgO1So0A5L+gOJ+fzJJQov9U7/7mOd+movVu5r8LU9qsqnXsk0IVNn8qShulDpUJW4WJH5ln9qHopxGkrGwHiCmIP1Tk9PzoiY7IAv/Oz0/e6g35f7/v/Vhz24RSNKguF6v2Q3KrsMAGZKaPEsy+6BpalJGRtuHa4V7W38+1EEcN8DmdjJ6mdaxTlWMX6vr9Yoq8G3I+oia141c1W7fmzUmq9KimdUj1MsqMo/tCJq8KKuMZNRDg8ylAVv6Du/cb7bYS3SNyB8UkpoCsiE9N9OsIYOzq2jraFtcD6weOZdr9WaC4m9as5RkE8hQD+ncjXda6OW52bpjkXxkm6i6HELP2bxuesnlyChyB5ZsbzBq8iEkYUVTIXGW3sU2pHW1ICD/pW7WUmSW843qhnUDu6iyuJ2Mf6S9XpaVcnBqcoqWedNA2V8v/jev5Q8xt6qigVcN2LMFAndXNmORwUQ31+2QVEC/I9Jb+DTJfirudycRZ4VjO/R0nZ3BO25o++pNvEiYde1+TPK0nvuAgkPiA/JwL4C42cjuBc/R+zRQht7T9TyyyK4pPV27k+xiNSYAJL49ouc+osCQNALk4FTl/xckwYVLdPF2L6CcaKAMSk2+2Cw1magB+7skU8FDj5OcVVBIHCDjBgDIAr23ycj4k4ESTk3+3iw12ZRkoGurQJXNVS63YeUlBYTEB2R2PwGZrwG7sykeKE+S7BZsoAxeTc5phpqspf6eH2CHmrt1iZ53RkA3Lov1JJUGgHwyVcl3aQBIxTtHX6CcQDJr2EDpW03+QROy7YxEFhP5az5CzQI+2XM3Vg4ESj1IxkQolzUGCMgWdcpumNeDaKCEU5N/y1JNKshI+wL9fv1A53XjAHP080PIJMBHI4y/rIAM4i0jzLpoN4i1oZbHEmQriptI1qTvoq7kWC27yciqzkpqTKhT/2cWshT4JmTwcaYqzNP6+x/rfbukgN1ks8Y7qy2+Q4+bnIykpvonGa6Fv4Jkt9sQ7lbJc1fe0HMfGajg3Lk3yaDVXayVO60gL+vvX2qgIGnzFWWp/u9TwMap3x9Pa02hj/F+XPmcm5WauAp3FpIH+DFkBWGIUWFH+P/q+MFVyKKuUAmy1wD2Ic7GPzU973PIdnhOIXZFJiuOVRdrMrIhalpBGoHSiSTduFkVcK6OIc31nmMPkoQZwyO//y7Czykra/f3AcAxhJ/UWdX7XYBk4lmY8l6i2RS9yCJkEVYIQl3LeqGe2y3JzELmY3QD7wb8n6cgmw8ifnOKsZ+nKHM9RWmlGcJrquL6S5lDq8l5WZab2/k2ZA9Xh9dF6qR3v8APVc7gKCG7f70yREDqgbLEc73WIZkUmkWy7P4kzR5q7+AFxM0hPF97ZzPp6RqpQXUN+EqgHi5348O1taxpsFUkJXEwH0sykr55gPLxYxQHys4tpCbu3a+jZRZTTb4eu9zcuMIihWRLbfkJEDe4TUrf1Z6gc7T1XA8Zl8llvtcGtsRzGZ8g2Rx1KLFAGbgDWWuzgsYrvo1G1qHE3MRnMcnS7dAxXRmZD/gTbXirEe7fpUb9qSp8tDrl3CKXEucVws3hcnRvTDJOkGkfd6D7P1zv/R56rsEZaofJaJKxlomp9zFRY6CXIxwL9dyHR3wXvposjKwm34hdp/xdd10wuU+guMQ/x60kWTBWpxj7k9SDhICQjOwFkp0y6KI9OnLlcuf9WuTYZCGyAjRKnfL3gpiDjAbXgL0jxA7f0c8NtGuwcHt4Z2xZjFxnsRdkSd2hBYTfH9Od7/3IGFMtJiRl9U/v0YvsrX5yV4CLduv57wV+oz87DckuYqD0z2WJdZARJC8hswlixAzunCeoaxe8TqVl9rd6kQ1U7kuEm7lbQkZJu5CxmHMNkrZRxCzUZBzJrOookDi67yfprj00IPVOTWYDP9SfHYVs2GlpdtoDkvn67mOoifOIjkfmCAYFpZzqsnsDuF0vcCBhU+E4GM5DFs8MAy7VFsAUpX3UZH4ENXF70a8eQ03qteC/QsY2xpHsCtsRsKDeBI7Tn22soGCQtAUkCzJQk2ORWefBQCmnWvoSkmH+Xi8YKgWk3qXYuQv4pv7sU8CX9BodVp9aHpQrkYVThVGTcp0LdQLX6tc7IBtehqzADpRzSXq7LlBYug2Ulofkn0jCvthqsl4oUMoNHmSmF8CfHaGwXCB/KDIdpoJMX9jXQGkLUK5BpqzEUpPVQqpJI0heR9Z/lIB/RUbjQ1Ze14K8pWDMQ0afr0dG+w0UU5MQarJ+CFDKvTzIdUgvVJlkpmVIcy7cP5Dp+fOQ3rRfeq5X2QL6llaTFyKqyaokO49Fg2QhsqzXjcBPitDCu/PNU1CeVUX5OZKIzC3/tHGU1oPk5QzU5Ch6ZvoPBon/IFch08MBvhWpsvqgTEIGHCvAxQrLWJIxFlOV1gLlZ5HVZAxJxp5okLyqcLierqNJeqdigPKignK7/vwIZA+QySlVMVhaR02mF0FN+rrQCsDdJCvzxhJmTUVf0H6TZKbqMuAHJGlYyQiWZk6V35H4s4CPCvQ8gy2DEjKuMY+4600uifmc7qQ7kazOu05/VolYeO66+6i75x76eeDzSBeff4+xgDFIsmmEziTOepOqHm8gyQyjzX52D/Jt7+IHpl5oDHMQrqoq8i49tzQ4m2Qzz3rAlCJAcrdBEkVNVstATabFfFb3IKuQbKWwAFnoUiKbjXPQSjQrVQD/QOYCTdb7a6RKQ8n6UUZ2snI5xAySOI3wGZHV5E0koWF0NdnFc7tu91r8UuTWxodlErIUeFmqMB7TLsVDkUz5IwLewyF6jT+nKrlBElZNno2sJpcN5nn7G1e4Ltj/Ac7XoHofZP7VhSTZCWP1hHR7D/ZHPSYAhyGZAscj6Ua30C6/t7TAn9HPF5HEB28q5P3NtduBZCNc1+tdMwv/fsvakzodmRUeOrOK6+k6QkGZS8TMKs4F+bUnZftGDuTrVVy/JVgR+JjGTPeR7DAV43jUlCSqmoxBkojHVJPLB/rMlUFQ34Xs+zceyfx4PZJYbQ5x8vKmrTsVpC9F8vX+Xn++jt7XZnqP6yJrY0Yj+8qXB9naLSPZjqxIOcOKpCava4B9WQZq8lRsNQHYliT15zNaEZvRKrmYpS/gO5CNUwdzvI+wyatNSZqrJldk8dzu5P5WAg/oS89Db4mDpkLYMZSyQZJJT9fJkXu63lZPo1+u82ALx83gnaUPVEWmrdyqMUIzVxm6FqhLDxdwh0jBU8UstttVAm5QNYk1p2sk0uUcFRK8HqerkVFwNICeBYwif2tCQrREZtlA8ob2csWc0/VppDe02hcoQ5VZ1zU8zQNlD2QN+xrEmQxp1h6g/CfSVRtLTUYgSRL7pSYhfcnTvGBrLj13ozWzmGSg9emEyLHJIq+OlmIHok5RpiPLJpcg3a93I7toua0GbPGU2UDVZE5kNTk9SzXxodvXayGrwFe9vzFVMSUZSF06LrKaLAa2yhoU95K3IdkHvQbchqTHd39TMkgMkj7KqIQMAj9O3HGTq5pRDu5i44Ab6Tlr92BTFYNkgPXomMhq8o426k0DpQx8gZ5zqq7zVMWvGAaJQVJPTUZ5atIVqSyubVZZ+HP3d0ZG5d3NLUBSvvgwdRgkBkmT1GSJpyZNCQXcix8N/HtKVe4j2X6uXWAxSAanJo9EAqXpakKdC3+EZMMgd9yB5B0mFbOUDJK2hsS/vyNJ1hfFUpNtm10m/nLfYci05UfqwLJPCo6OFusRM0gGpyYjvR7TWGpyXV7KxJ+ZOwaZbPZU6qYfQNatjKvjuhUdGINk8GrymQzUZLs8lYt/E+OQaS0Pp25+IdKPvReyriP9/xWS1Yolg6RlIXFqMsKrI7HU5Ia8lUs648rKSMLs25HRUP8hnkF2cT0AydbSqJOgkoLHTzOUh6PsuQ8GycAb1SMiq8kyZOlH7somDUsZ2fLhwjrqUkNWRd6JZLzfG9lQsmhzw0YYJLlVk1+4ssnTiLe7SVcQNeBBPS5WYPbUHrAtkRQ0e+qB+pLzkMU6c/XrF7QSvobM+FyCZHXpzsHLtmz5g6sjZfUwvovkV4ihVlVgqta5Bys5LYhaquV4iyTZw0rIhqQ7aFfyBCQh8mhgcz3S1qWQLFYp7czJs7p8U7b78MDqRwm4BXhIg+yQC/xKer7hyAzhIyoFKBBfXZxizNbjJxrMrw1sgEzP30BdrzWRZMwrq++/CvWzPOYtmG/0fUjryOAasdVkCfAddYtCDz47Lj4JXFHEQkqnqaz24u+PVkhG6/crkb/RfBfEPwi85Llia2mcUotY0eaQ7I1ZxHowGthVK3Ut0rt54v8B10wtAMNQzaIAAAAASUVORK5CYII=" alt="MEGA">
+      <div class="wordmark">CHAMELEON<span>MEGA</span></div>
+    </div>
+    <button class="linkbtn" id="nav-admin">운영진</button>
+  </div>
+
+  <!-- HOME -->
+  <section id="home" class="step active">
+    <svg class="stage-art" viewBox="0 0 260 340" id="hero-figure"></svg>
+    <svg class="title-art" viewBox="0 0 620 170" id="title-art"></svg>
+    <p>배경을 고르고, 하얀 몸에 직접 그림을 그려서 숨어라. 그림 실력이 곧 생존력!</p>
+    <button class="btn lg hot" id="start-btn">숨으러 가기</button>
+  </section>
+
+  <!-- WIZARD -->
+  <div id="wizard">
+    <section class="step" id="step-bg">
+      <div class="card">
+        <h2>어디에 숨을래?</h2>
+        <div class="grid" id="bg-grid"></div>
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn ghost" id="bg-cancel">취소</button>
+        <span class="spacer"></span>
+        <button class="btn" id="bg-next" disabled>다음</button>
+      </div>
+    </section>
+
+    <section class="step" id="step-create">
+      <div class="card">
+        <h2>몸을 칠해서 숨어라</h2>
+        <div class="roundinfo" id="round-badge"></div>
+        <div class="stage" id="create-stage">
+          <div class="char-anchor" id="char-anchor">
+            <div class="drag-handle" id="drag-handle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#1D1B18" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 L12 21 M3 12 L21 12 M12 3 L9 6 M12 3 L15 6 M12 21 L9 18 M12 21 L15 18 M3 12 L6 9 M3 12 L6 15 M21 12 L18 9 M21 12 L18 15"/>
+              </svg>
+            </div>
+            <div class="char-inner" id="char-inner">
+              <canvas id="paint-canvas" width="260" height="340"></canvas>
+            </div>
+          </div>
+          <div class="zoom-badge" id="zoom-badge">확대 1x</div>
+        </div>
+        <p class="hint">동그란 손잡이를 끌어 옮기고, 몸을 문질러 색칠하세요.</p>
+
+        <div class="dock">
+          <div class="dockblock">
+            <h3>이름</h3>
+            <input type="text" id="char-name" class="nameinput" maxlength="14" placeholder="닉네임" autocomplete="off">
+            <div class="warn" id="name-warning"></div>
+            <h3 style="margin-top:14px;">자세</h3>
+            <div class="poses" id="pose-row"></div>
+          </div>
+          <div class="dockblock">
+            <h3>색</h3>
+            <div class="swatches" id="brush-swatches"></div>
+            <div class="pickrow">
+              <input type="color" id="brush-color-picker" value="#FF3E7F">
+              <button class="toolbtn" id="eyedrop-btn">스포이드</button>
+              <button class="toolbtn" id="zoom-btn">확대</button>
+            </div>
+            <h3 style="margin-top:14px;">붓 굵기</h3>
+            <div class="sizerow">
+              <div class="sizedot" id="size-dot" style="width:20px;height:20px;"></div>
+              <input type="range" id="brush-size" min="4" max="60" value="22">
+            </div>
+            <div class="toolrow" style="margin-top:12px;">
+              <button class="toolbtn" id="eraser-btn">지우개</button>
+              <button class="toolbtn" id="clear-btn">전체 지우기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn ghost" id="create-back">이전</button>
+        <span class="spacer"></span>
+        <button class="btn hot" id="save-btn">숨기 완료!</button>
+      </div>
+    </section>
+
+    <section class="step" id="saved-step">
+      <div class="card">
+        <svg class="yay" viewBox="0 0 120 120" id="yay-art"></svg>
+        <h2>숨었다!</h2>
+        <p id="saved-note"></p>
+        <div class="row" style="justify-content:center;">
+          <button class="btn ghost" id="saved-home">처음으로</button>
+          <button class="btn hot" id="saved-again">또 숨기</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ADMIN -->
+  <section class="step" id="admin-gate">
+    <div class="card">
+      <h2>운영진 모드</h2>
+      <p style="color:var(--ink-soft); font-weight:600;">비밀번호를 입력하세요</p>
+      <input type="password" id="admin-pw" inputmode="numeric" placeholder="••••">
+      <div class="warn" id="admin-error"></div>
+      <div class="row" style="justify-content:center; margin-top:10px;">
+        <button class="btn ghost" id="admin-cancel">취소</button>
+        <button class="btn" id="admin-enter">입장</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="admin-dash">
+    <div class="bar">
+      <h2>운영진 모드</h2>
+      <button class="linkbtn" id="admin-exit">나가기</button>
+    </div>
+    <div class="subtabs">
+      <div class="subtab active" data-panel="chars">숨은 사람</div>
+      <div class="subtab" data-panel="bgs">배경 관리</div>
+    </div>
+    <div id="panel-chars">
+      <div class="bgtabs" id="admin-bg-tabs"></div>
+      <div class="toolrow" style="margin-bottom:14px;">
+        <button class="toolbtn" id="save-png">사진으로 저장</button>
+        <button class="toolbtn" id="save-png-named">이름 표시해서 저장</button>
+        <button class="toolbtn" id="save-png-all">전체 배경 한장에</button>
+      </div>
+      <div class="status" id="png-status"></div>
+      <div class="adminwrap">
+        <div class="stage" id="admin-stage"></div>
+        <div class="adminlist" id="admin-list"></div>
+      </div>
+    </div>
+    <div id="panel-bgs" class="hidden">
+      <p style="color:var(--ink-soft); font-weight:600; margin:0 0 14px;">배경 사진을 바꿀 수 있어요. 가로로 긴 사진(8:5)이 가장 잘 맞아요.</p>
+      <div class="bgman" id="bg-manage-list"></div>
+      <div class="status" id="bg-status"></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ================= storage adapter ================= */
+const store = (function(){
+  const art = (typeof window!=='undefined') && window.storage && typeof window.storage.get==='function';
+  if(art) return {
+    get:(k)=>window.storage.get(k,true), set:(k,v)=>window.storage.set(k,v,true),
+    list:(p)=>window.storage.list(p,true), remove:(k)=>window.storage.delete(k,true) };
+  return {
+    async get(k){ const v=localStorage.getItem(k); if(v===null) throw new Error('nf'); return {key:k,value:v}; },
+    async set(k,v){ localStorage.setItem(k,v); return {key:k,value:v}; },
+    async list(p){ const keys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(!p||k.startsWith(p)) keys.push(k);} return {keys}; },
+    async remove(k){ localStorage.removeItem(k); return {key:k,deleted:true}; }
+  };
+})();
+
+const ADMIN_PASSWORD='0616';
+const BG_CONFIG_KEY='bgconfig_v1';
+const ROUND_LIMIT=3;
+const ROUND_PREFIX='roundstate_v1_';
+const CANVAS_W=260, CANVAS_H=340;
+const CHAR_FRACTION=1/16;
+const BLANK='#F4F1E8';
+
+/* ================= blobby character ================= */
+const ARM_LEN=92, ARM_W=34;
+const POSE_ANGLES={ attention:{l:8,r:8}, wide:{l:78,r:78}, cheer:{l:165,r:165}, onehand:{l:165,r:10} };
+const POSES=[{id:'attention',name:'차렷'},{id:'wide',name:'팔벌려'},{id:'cheer',name:'만세'},{id:'onehand',name:'한손'}];
+
+function rot(px,py,cx,cy,d){ const r=d*Math.PI/180,c=Math.cos(r),s=Math.sin(r),dx=px-cx,dy=py-cy;
+  return {x:cx+dx*c-dy*s, y:cy+dx*s+dy*c}; }
+function limb(pivot,dx,len,w,angle){
+  const pts=[{x:pivot.x,y:pivot.y},{x:pivot.x+dx,y:pivot.y},{x:pivot.x+dx,y:pivot.y+len},{x:pivot.x,y:pivot.y+len}]
+    .map(p=>rot(p.x,p.y,pivot.x,pivot.y,angle));
+  const end=rot(pivot.x+dx/2,pivot.y+len,pivot.x,pivot.y,angle);
+  const rr=Math.abs(dx)/2;
+  return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)} L${pts[2].x.toFixed(1)},${pts[2].y.toFixed(1)} L${pts[3].x.toFixed(1)},${pts[3].y.toFixed(1)} Z`
+    + ` M${(end.x-rr).toFixed(1)},${end.y.toFixed(1)} a${rr.toFixed(1)},${rr.toFixed(1)} 0 1,0 ${(rr*2).toFixed(1)},0 a${rr.toFixed(1)},${rr.toFixed(1)} 0 1,0 ${(-rr*2).toFixed(1)},0 Z`;
+}
+function buildPosePath(id){
+  const a=POSE_ANGLES[id]||POSE_ANGLES.attention;
+  const head='M130,26 a40,40 0 1,0 0.1,0 Z';
+  const torso='M92,84 q38,-12 76,0 l6,118 q-44,14 -88,0 Z';
+  const armL=limb({x:96,y:96},-ARM_W,ARM_LEN,ARM_W,a.l);
+  const armR=limb({x:164,y:96},ARM_W,ARM_LEN,ARM_W,-a.r);
+  const legL=limb({x:126,y:196},-32,116,32,6);
+  const legR=limb({x:134,y:196},32,116,32,-6);
+  return [head,torso,armL,armR,legL,legR].join(' ');
+}
+function faceSVG(){
+  return `<g><ellipse cx="115" cy="52" rx="5.5" ry="9" fill="#1D1B18"/><ellipse cx="145" cy="52" rx="5.5" ry="9" fill="#1D1B18"/>`
+    + `<path d="M107,66 q23,22 46,0" fill="none" stroke="#1D1B18" stroke-width="6" stroke-linecap="round"/></g>`;
+}
+function poseThumb(id){
+  return `<svg viewBox="0 0 260 340"><path d="${buildPosePath(id)}" fill="#fff" stroke="#1D1B18" stroke-width="7" stroke-linejoin="round"/>${faceSVG()}</svg>`;
+}
+
+/* ================= backgrounds ================= */
+/* BUILTIN are the shipped presets. The live list lives in bgList and is editable
+   by the admin (add / delete / rename / replace image), persisted to storage. */
+const BUILTIN=[
+  {id:'brick', name:'벽돌벽', build:buildBrick},
+  {id:'jungle',name:'정글',  build:buildJungle},
+  {id:'desert',name:'사막',  build:buildDesert},
+  {id:'ocean', name:'바닷속',build:buildOcean},
+  {id:'space', name:'우주',  build:buildSpace}
+];
+function builtinOf(id){ return BUILTIN.find(b=>b.id===id); }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; } }
+function buildBrick(){
+  let b=''; const rnd=mulberry32(3);
+  for(let r=0;r<10;r++){ const off=(r%2)?-40:0;
+    for(let c=0;c<11;c++){ const x=off+c*76, y=r*50;
+      const t=['#A8563E','#B4614A','#9C4E38','#BE6E55'][Math.floor(rnd()*4)];
+      b+=`<rect x="${x+4}" y="${y+4}" width="68" height="42" rx="4" fill="${t}"/>`; } }
+  return `<rect width="800" height="500" fill="#D9CFC2"/>${b}`;
+}
+function leaf(x,y,s,c){ return `<path d="M${x} ${y} C${x+s} ${y-s*.3} ${x+s} ${y+s*.3} ${x} ${y+s} C${x-s} ${y+s*.3} ${x-s} ${y-s*.3} ${x} ${y} Z" fill="${c}"/>`; }
+function buildJungle(){
+  return `<defs><linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DCE9B8"/><stop offset="100%" stop-color="#4F7942"/></linearGradient></defs>
+  <rect width="800" height="500" fill="url(#jg)"/><ellipse cx="120" cy="470" rx="220" ry="60" fill="#3E6534"/><ellipse cx="650" cy="480" rx="260" ry="70" fill="#3E6534"/>
+  ${leaf(90,120,60,'#2F5A28')}${leaf(180,80,80,'#3E6534')}${leaf(650,90,90,'#2F5A28')}${leaf(730,180,55,'#3E6534')}${leaf(60,300,70,'#345E2C')}${leaf(400,60,65,'#2F5A28')}`;
+}
+function buildDesert(){
+  return `<defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCE3AE"/><stop offset="100%" stop-color="#E3A857"/></linearGradient></defs>
+  <rect width="800" height="500" fill="url(#dg)"/><circle cx="680" cy="80" r="46" fill="#FBEFD0"/>
+  <path d="M0 340 Q200 300 400 350 T800 330 V500 H0 Z" fill="#D9924B"/><path d="M0 400 Q220 370 420 410 T800 400 V500 H0 Z" fill="#C67F3B"/>
+  <path d="M120 500 C100 420 130 400 150 500" fill="#5C7A3D"/><path d="M600 500 C580 430 610 410 630 500" fill="#5C7A3D"/>`;
+}
+function bub(x,y,r){ return `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity=".5"/>`; }
+function buildOcean(){
+  return `<defs><linearGradient id="og" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#A6D9E8"/><stop offset="100%" stop-color="#2E6E8E"/></linearGradient></defs>
+  <rect width="800" height="500" fill="url(#og)"/>${bub(120,400,14)}${bub(160,340,8)}${bub(700,150,16)}${bub(660,200,9)}${bub(400,80,10)}${bub(300,420,12)}
+  <path d="M50 480 C120 440 180 480 240 450 C300 420 360 470 420 450 C480 430 540 470 600 450 C660 430 720 470 780 450 V500 H50 Z" fill="#1F4E63"/>
+  <ellipse cx="150" cy="460" rx="50" ry="18" fill="#E58FB1" opacity=".7"/><ellipse cx="620" cy="470" rx="60" ry="20" fill="#E58FB1" opacity=".6"/>`;
+}
+function buildSpace(){
+  let s=''; const rnd=mulberry32(7);
+  for(let i=0;i<60;i++) s+=`<circle cx="${(rnd()*800).toFixed(1)}" cy="${(rnd()*500).toFixed(1)}" r="${(1+rnd()*1.8).toFixed(2)}" fill="#fff" opacity="${(0.4+rnd()*0.6).toFixed(2)}"/>`;
+  return `<defs><radialGradient id="sg" cx="50%" cy="30%" r="80%"><stop offset="0%" stop-color="#2B2559"/><stop offset="100%" stop-color="#0E0B26"/></radialGradient></defs>
+  <rect width="800" height="500" fill="url(#sg)"/>${s}<circle cx="640" cy="140" r="70" fill="#7A5C9E"/>
+  <ellipse cx="640" cy="140" rx="110" ry="18" fill="none" stroke="#B79FD1" stroke-width="6" opacity=".7"/><circle cx="130" cy="380" r="46" fill="#4A7A9D"/>`;
+}
+
+const PALETTE=['#FFFFFF','#1D1B18','#8C8C8C','#FF3E7F','#FF7A3C','#FFC93C','#8BE04A','#3FA84A','#3FC1F0','#2E6E8E','#9B6BE8','#A8563E'];
+
+/* ================= bg config ================= */
+/* bgList: [{ id, name, image? }] — image present means a custom photo.
+   Entries whose id matches a BUILTIN and have no image render from the preset. */
+let bgList=[];
+function defaultList(){ return BUILTIN.map(b=>({ id:b.id, name:b.name })); }
+async function loadBgConfig(){
+  let raw=null;
+  try{ const r=await store.get(BG_CONFIG_KEY); raw=(r&&r.value)?JSON.parse(r.value):null; }catch(e){ raw=null; }
+  if(raw && Array.isArray(raw.list) && raw.list.length){
+    bgList=raw.list.filter(e=>e&&e.id).map(e=>({ id:e.id, name:e.name||e.id, image:e.image }));
+  }else if(raw && !Array.isArray(raw.list) && typeof raw==='object'){
+    // migrate the older { id: {name,image} } shape
+    bgList=defaultList().map(e=>{
+      const o=raw[e.id]||{};
+      return { id:e.id, name:o.name||e.name, image:o.image };
+    });
+  }else{
+    bgList=defaultList();
+  }
+  if(!bgList.length) bgList=defaultList();
+}
+async function saveBgConfig(){ await store.set(BG_CONFIG_KEY, JSON.stringify({ list:bgList })); }
+function bgEntry(id){ return bgList.find(b=>b.id===id); }
+function bgName(id){ const e=bgEntry(id); if(e&&e.name) return e.name; const d=builtinOf(id); return d?d.name:id; }
+function bgCustom(id){ const e=bgEntry(id); return !!(e&&e.image); }
+function bgIsBuiltin(id){ return !!builtinOf(id); }
+function bgLayerHTML(id){
+  const e=bgEntry(id);
+  if(e&&e.image) return `<img class="bg-layer" src="${e.image}" alt="">`;
+  const d=builtinOf(id);
+  if(!d) return `<div class="bg-layer" style="background:#CFC9B8"></div>`;
+  return `<svg class="bg-layer" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${d.build()}</svg>`;
+}
+function bgSrc(id){
+  const e=bgEntry(id);
+  if(e&&e.image) return e.image;
+  const d=builtinOf(id);
+  const inner = d ? d.build() : '<rect width="800" height="500" fill="#CFC9B8"/>';
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">${inner}</svg>`);
+}
+
+/* ================= round state ================= */
+async function getRound(id){
+  try{ const r=await store.get(ROUND_PREFIX+id); if(r&&r.value){ const s=JSON.parse(r.value); if(typeof s.round==='number') return s; } }catch(e){}
+  return {round:1,count:0};
+}
+async function setRound(id,s){ await store.set(ROUND_PREFIX+id, JSON.stringify(s)); }
+
+/* ================= app state ================= */
+let wizard={ backgroundId:null, pose:'wide', x:50, y:45 };
+function showOnly(id){ ['home','wizard','admin-gate','admin-dash'].forEach(k=>{ document.getElementById(k).classList.toggle('hidden', k!==id); }); }
+function goStep(s){ document.querySelectorAll('#wizard > section.step').forEach(x=>x.classList.remove('active')); document.getElementById('step-'+s).classList.add('active'); }
+
+/* hero + title art */
+(function(){
+  const p=buildPosePath('wide');
+  document.getElementById('hero-figure').innerHTML=
+    `<defs><clipPath id="hc"><path d="${p}"/></clipPath></defs>
+     <g clip-path="url(#hc)"><rect width="260" height="340" fill="#fff"/>
+       <rect x="0" y="150" width="260" height="26" fill="#FF3E7F" opacity=".85"/>
+       <rect x="0" y="186" width="260" height="26" fill="#FFC93C" opacity=".85"/>
+       <rect x="0" y="222" width="260" height="26" fill="#8BE04A" opacity=".85"/>
+       <rect x="0" y="258" width="260" height="26" fill="#3FC1F0" opacity=".85"/>
+     </g><path d="${p}" fill="none" stroke="#1D1B18" stroke-width="7" stroke-linejoin="round"/>${faceSVG()}`;
+
+  const cols=['#FF3E7F','#FFC93C','#8BE04A','#3FC1F0','#9B6BE8','#FF7A3C'];
+  const l1='MEGA', l2='CHAMELEON';
+  let out='';
+  const w1=118, sx1=(620-l1.length*w1)/2;
+  l1.split('').forEach((ch,i)=>{ const rotd=(i%2?4:-4);
+    out+=`<g transform="translate(${sx1+i*w1+w1/2},62) rotate(${rotd})"><text x="0" y="0" text-anchor="middle" font-family="Gaegu,sans-serif" font-size="96" font-weight="700" fill="${cols[i%cols.length]}" stroke="#1D1B18" stroke-width="6" paint-order="stroke">${ch}</text></g>`; });
+  const w2=57, sx2=(620-l2.length*w2)/2;
+  l2.split('').forEach((ch,i)=>{ const rotd=(i%2?3:-3);
+    out+=`<g transform="translate(${sx2+i*w2+w2/2},146) rotate(${rotd})"><text x="0" y="0" text-anchor="middle" font-family="Gaegu,sans-serif" font-size="66" font-weight="700" fill="${cols[(i+2)%cols.length]}" stroke="#1D1B18" stroke-width="5" paint-order="stroke">${ch}</text></g>`; });
+  document.getElementById('title-art').innerHTML=out;
+
+  document.getElementById('yay-art').innerHTML=
+    `<circle cx="60" cy="60" r="52" fill="#8BE04A" stroke="#1D1B18" stroke-width="6"/>
+     <path d="M36 62 L54 80 L86 42" fill="none" stroke="#1D1B18" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+})();
+
+document.getElementById('start-btn').addEventListener('click', async ()=>{
+  wizard={ backgroundId:null, pose:'wide', x:50, y:45 };
+  painted=false;
+  showOnly('wizard'); goStep('bg');
+  document.getElementById('bg-grid').innerHTML='<div class="empty">불러오는 중...</div>';
+  await loadBgConfig(); buildBgGrid();
+});
+
+/* ---------- bg picker ---------- */
+function buildBgGrid(){
+  const g=document.getElementById('bg-grid'); g.innerHTML='';
+  bgList.forEach(bg=>{
+    const t=document.createElement('div');
+    t.className='tile'+(wizard.backgroundId===bg.id?' selected':'');
+    t.innerHTML=`<div class="thumb">${bgLayerHTML(bg.id)}</div><div class="tname">${bgName(bg.id)}</div>`;
+    t.addEventListener('click',()=>{
+      wizard.backgroundId=bg.id;
+      document.querySelectorAll('#bg-grid .tile').forEach(x=>x.classList.remove('selected'));
+      t.classList.add('selected');
+      document.getElementById('bg-next').disabled=false;
+    });
+    g.appendChild(t);
+  });
+}
+document.getElementById('bg-cancel').addEventListener('click',()=>showOnly('home'));
+document.getElementById('bg-next').addEventListener('click',()=>{ goStep('create'); buildCreate(); });
+
+/* ---------- create ---------- */
+let pc, ctx, brush='#FF3E7F', bsize=22, eraser=false, eyedrop=false, painted=false;
+let drawing=false, lx=0, ly=0, bgRaster=null, zoom=1;
+
+function buildCreate(){
+  const stage=document.getElementById('create-stage');
+  const old=stage.querySelector('.bg-layer'); if(old) old.remove();
+  stage.insertAdjacentHTML('afterbegin', bgLayerHTML(wizard.backgroundId));
+  stage.querySelector('.bg-layer').addEventListener('click', eyedropClick);
+
+  const rc=document.createElement('canvas'); rc.width=800; rc.height=500;
+  bgRaster=rc.getContext('2d');
+  const im=new Image();
+  im.onload=()=>{ const s=Math.max(800/im.width,500/im.height), dw=im.width*s, dh=im.height*s;
+    bgRaster.drawImage(im,(800-dw)/2,(500-dh)/2,dw,dh); };
+  im.src=bgSrc(wizard.backgroundId);
+
+  const a=document.getElementById('char-anchor');
+  a.style.left=wizard.x+'%'; a.style.top=wizard.y+'%';
+
+  pc=document.getElementById('paint-canvas'); ctx=pc.getContext('2d');
+  if(!painted){ ctx.fillStyle=BLANK; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); painted=true; }
+  applyPose();
+  updateScale();
+  buildPoses(); buildSwatches(); syncTools();
+  document.getElementById('char-name').value='';
+  document.getElementById('name-warning').textContent='';
+  makeDraggable();
+
+  document.getElementById('round-badge').textContent='';
+  getRound(wizard.backgroundId).then(s=>{
+    document.getElementById('round-badge').textContent =
+      `${bgName(wizard.backgroundId)} · 지금 ${s.count}명 숨어있음 (내가 ${s.count+1}번째 / ${ROUND_LIMIT}명)`;
+  });
+}
+function applyPose(){ pc.style.clipPath=`path('${buildPosePath(wizard.pose)}')`; }
+function updateScale(){
+  const stage=document.getElementById('create-stage'), inner=document.getElementById('char-inner');
+  const w=stage.getBoundingClientRect().width; if(!w) return;
+  const s=(w*CHAR_FRACTION*zoom)/CANVAS_W;
+  inner.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+window.addEventListener('resize',()=>{ if(document.getElementById('step-create').classList.contains('active')) updateScale(); });
+window.addEventListener('orientationchange',()=>setTimeout(updateScale,300));
+
+document.getElementById('zoom-btn').addEventListener('click',()=>{
+  zoom = zoom===1?3:(zoom===3?6:1);
+  document.getElementById('zoom-badge').textContent='확대 '+zoom+'x';
+  document.getElementById('zoom-btn').classList.toggle('on', zoom!==1);
+  updateScale();
+});
+
+function buildPoses(){
+  const r=document.getElementById('pose-row'); r.innerHTML='';
+  POSES.forEach(p=>{
+    const b=document.createElement('div');
+    b.className='posebtn'+(wizard.pose===p.id?' selected':'');
+    b.innerHTML=poseThumb(p.id)+`<div class="pn">${p.name}</div>`;
+    b.addEventListener('click',()=>{
+      wizard.pose=p.id; applyPose();
+      document.querySelectorAll('#pose-row .posebtn').forEach(x=>x.classList.remove('selected'));
+      b.classList.add('selected');
+    });
+    r.appendChild(b);
+  });
+}
+function buildSwatches(){
+  const w=document.getElementById('brush-swatches'); w.innerHTML='';
+  PALETTE.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='swatch'; d.style.background=c; d.dataset.c=c.toUpperCase();
+    d.addEventListener('click',()=>setBrush(c));
+    w.appendChild(d);
+  });
+  markSwatch();
+}
+function markSwatch(){
+  document.querySelectorAll('#brush-swatches .swatch').forEach(s=>
+    s.classList.toggle('active', s.dataset.c===brush.toUpperCase()));
+}
+function setBrush(c){
+  brush=c; eraser=false;
+  document.getElementById('brush-color-picker').value=c;
+  document.getElementById('eraser-btn').classList.remove('on');
+  markSwatch();
+}
+function syncTools(){
+  document.getElementById('brush-color-picker').value=brush;
+  document.getElementById('brush-size').value=bsize;
+  document.getElementById('size-dot').style.width=Math.max(10,bsize*0.55)+'px';
+  document.getElementById('size-dot').style.height=Math.max(10,bsize*0.55)+'px';
+  document.getElementById('eraser-btn').classList.toggle('on',eraser);
+  document.getElementById('zoom-badge').textContent='확대 '+zoom+'x';
+}
+document.getElementById('brush-color-picker').addEventListener('input',e=>setBrush(e.target.value));
+document.getElementById('brush-size').addEventListener('input',e=>{ bsize=+e.target.value;
+  const d=document.getElementById('size-dot'); const v=Math.max(10,bsize*0.55); d.style.width=v+'px'; d.style.height=v+'px'; });
+document.getElementById('eraser-btn').addEventListener('click',()=>{ eraser=!eraser;
+  document.getElementById('eraser-btn').classList.toggle('on',eraser); });
+document.getElementById('clear-btn').addEventListener('click',()=>{ ctx.fillStyle=BLANK; ctx.fillRect(0,0,CANVAS_W,CANVAS_H); });
+
+/* painting (pointer events cover Apple Pencil + finger) */
+function cpos(e){
+  const r=pc.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(pc.width/r.width), y:(e.clientY-r.top)*(pc.height/r.height) };
+}
+function col(){ return eraser?BLANK:brush; }
+document.getElementById('paint-canvas').addEventListener('pointerdown',e=>{
+  e.preventDefault(); drawing=true; const p=cpos(e); lx=p.x; ly=p.y;
+  ctx.fillStyle=col(); ctx.beginPath(); ctx.arc(p.x,p.y,bsize/2,0,7); ctx.fill();
+  e.target.setPointerCapture(e.pointerId);
+});
+document.getElementById('paint-canvas').addEventListener('pointermove',e=>{
+  if(!drawing) return; e.preventDefault(); const p=cpos(e);
+  ctx.strokeStyle=col(); ctx.lineWidth=bsize; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y); ctx.stroke(); lx=p.x; ly=p.y;
+});
+window.addEventListener('pointerup',()=>{ drawing=false; });
+
+/* eyedropper */
+document.getElementById('eyedrop-btn').addEventListener('click',()=>{
+  eyedrop=!eyedrop;
+  document.getElementById('eyedrop-btn').classList.toggle('on',eyedrop);
+  document.getElementById('create-stage').classList.toggle('eyedrop',eyedrop);
+});
+function eyedropClick(e){
+  if(!eyedrop||!bgRaster) return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)*(800/r.width)), y=Math.floor((e.clientY-r.top)*(500/r.height));
+  try{
+    const d=bgRaster.getImageData(Math.max(0,Math.min(799,x)),Math.max(0,Math.min(499,y)),1,1).data;
+    setBrush('#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join(''));
+  }catch(err){}
+  eyedrop=false;
+  document.getElementById('eyedrop-btn').classList.remove('on');
+  document.getElementById('create-stage').classList.remove('eyedrop');
+}
+
+/* drag */
+function makeDraggable(){
+  const h0=document.getElementById('drag-handle'), a=document.getElementById('char-anchor'), stage=document.getElementById('create-stage');
+  const h=h0.cloneNode(true); h0.parentNode.replaceChild(h,h0);
+  let dg=false, ox=0, oy=0;
+  h.addEventListener('pointerdown',e=>{
+    e.preventDefault(); dg=true;
+    const r=stage.getBoundingClientRect();
+    ox=wizard.x-((e.clientX-r.left)/r.width)*100;
+    oy=wizard.y-((e.clientY-r.top)/r.height)*100;
+    h.setPointerCapture(e.pointerId);
+  });
+  h.addEventListener('pointermove',e=>{
+    if(!dg) return; e.preventDefault();
+    const r=stage.getBoundingClientRect();
+    let x=((e.clientX-r.left)/r.width)*100+ox, y=((e.clientY-r.top)/r.height)*100+oy;
+    x=Math.max(4,Math.min(96,x)); y=Math.max(6,Math.min(96,y));
+    a.style.left=x+'%'; a.style.top=y+'%'; wizard.x=x; wizard.y=y;
+  });
+  h.addEventListener('pointerup',()=>{ dg=false; });
+  h.addEventListener('pointercancel',()=>{ dg=false; });
+}
+document.getElementById('create-back').addEventListener('click',()=>goStep('bg'));
+
+/* save */
+function exportPNG(){
+  const m=document.createElement('canvas'); m.width=CANVAS_W; m.height=CANVAS_H;
+  const c=m.getContext('2d');
+  c.drawImage(pc,0,0);
+  c.globalCompositeOperation='destination-in';
+  c.fillStyle='#000'; c.fill(new Path2D(buildPosePath(wizard.pose)));
+  return m.toDataURL('image/png');
+}
+document.getElementById('save-btn').addEventListener('click', async ()=>{
+  const ni=document.getElementById('char-name'), nm=ni.value.trim();
+  if(!nm){ document.getElementById('name-warning').textContent='이름을 입력해줘!'; ni.focus(); return; }
+  document.getElementById('name-warning').textContent='';
+  const btn=document.getElementById('save-btn'); btn.disabled=true; btn.textContent='저장 중...';
+  const img=exportPNG();
+  const id='camo_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random());
+  let closed=false;
+  try{
+    const s=await getRound(wizard.backgroundId);
+    const n=s.count+1; closed=n>=ROUND_LIMIT;
+    await store.set(id, JSON.stringify({ backgroundId:wizard.backgroundId, name:nm, pose:wizard.pose,
+      paintedImage:img, x:wizard.x, y:wizard.y, round:s.round, createdAt:new Date().toISOString() }));
+    await setRound(wizard.backgroundId, closed?{round:s.round+1,count:0}:{round:s.round,count:n});
+  }catch(e){ console.error(e); }
+  btn.disabled=false; btn.textContent='숨기 완료!';
+  document.getElementById('saved-note').textContent = closed
+    ? `${nm} 까지 ${ROUND_LIMIT}명 꽉 찼다! 다음 사람은 빈 맵에서 시작해.`
+    : `${nm}, 잘 숨었어. 다음 사람에게 넘겨줘!`;
+  document.querySelectorAll('#wizard > section.step').forEach(x=>x.classList.remove('active'));
+  document.getElementById('saved-step').classList.add('active');
+});
+document.getElementById('saved-home').addEventListener('click',()=>showOnly('home'));
+document.getElementById('saved-again').addEventListener('click',()=>{
+  wizard={ backgroundId:null, pose:'wide', x:50, y:45 }; painted=false; zoom=1;
+  goStep('bg'); buildBgGrid();
+});
+
+/* ================= admin ================= */
+document.getElementById('nav-admin').addEventListener('click',()=>{
+  document.getElementById('admin-pw').value=''; document.getElementById('admin-error').textContent='';
+  showOnly('admin-gate');
+});
+document.getElementById('admin-cancel').addEventListener('click',()=>showOnly('home'));
+document.getElementById('admin-enter').addEventListener('click',tryLogin);
+document.getElementById('admin-pw').addEventListener('keydown',e=>{ if(e.key==='Enter') tryLogin(); });
+function tryLogin(){
+  if(document.getElementById('admin-pw').value===ADMIN_PASSWORD){ showOnly('admin-dash'); initAdmin(); }
+  else document.getElementById('admin-error').textContent='비밀번호가 달라요.';
+}
+document.getElementById('admin-exit').addEventListener('click',()=>showOnly('home'));
+document.querySelectorAll('.subtab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-chars').classList.toggle('hidden', t.dataset.panel!=='chars');
+    document.getElementById('panel-bgs').classList.toggle('hidden', t.dataset.panel!=='bgs');
+  });
+});
+
+let curBg=null, data={};
+function buildAdminTabs(){
+  const t=document.getElementById('admin-bg-tabs');
+  t.innerHTML=bgList.map(b=>`<div class="bgtab" data-bg="${b.id}">${bgName(b.id)}</div>`).join('');
+  t.querySelectorAll('.bgtab').forEach(x=>x.addEventListener('click',()=>{ curBg=x.dataset.bg; renderAdmin(); }));
+  if(!curBg || !bgEntry(curBg)) curBg = bgList.length ? bgList[0].id : null;
+}
+async function initAdmin(){
+  await loadBgConfig();
+  buildAdminTabs();
+  document.getElementById('admin-stage').innerHTML='<div class="empty">불러오는 중...</div>';
+  renderBgMan();
+  await loadAll();
+  renderBgMan();
+  renderAdmin();
+}
+async function loadAll(){
+  data={}; bgList.forEach(b=>data[b.id]=[]);
+  try{
+    const l=await store.list('camo_');
+    for(const k of (l&&l.keys)||[]){
+      try{ const r=await store.get(k); if(r&&r.value){ const rec=JSON.parse(r.value);
+        if(data[rec.backgroundId]) data[rec.backgroundId].push(Object.assign({id:k},rec)); } }catch(e){}
+    }
+  }catch(e){}
+}
+function renderAdmin(){
+  document.querySelectorAll('#admin-bg-tabs .bgtab').forEach(x=>x.classList.toggle('active',x.dataset.bg===curBg));
+  const stage=document.getElementById('admin-stage');
+  if(!curBg || !bgEntry(curBg)){
+    stage.innerHTML='<div class="empty">배경이 없어요.<br>배경 관리 탭에서 추가하세요.</div>';
+    document.getElementById('admin-list').innerHTML='';
+    return;
+  }
+  const list=data[curBg]||[];
+  stage.innerHTML=bgLayerHTML(curBg);
+  list.forEach(r=>{
+    const e=document.createElement('div');
+    e.className='atoken'; e.id='at-'+r.id;
+    e.style.left=r.x+'%'; e.style.top=r.y+'%';
+    e.innerHTML=`<img src="${r.paintedImage}" alt="">`;
+    stage.appendChild(e);
+  });
+  const le=document.getElementById('admin-list');
+  if(!list.length){ le.innerHTML='<div class="empty">아직 아무도<br>숨지 않았어요.</div>'; return; }
+  const sorted=[...list].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  le.innerHTML=sorted.map(r=>{
+    const t=new Date(r.createdAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="aitem" data-id="${r.id}"><img src="${r.paintedImage}" alt="">
+      <div><div class="aname">${r.name||'이름 없음'}</div><div class="atime">${t}</div></div></div>`;
+  }).join('');
+  le.querySelectorAll('.aitem').forEach(it=>{
+    it.addEventListener('click',()=>{
+      const wasOn=it.classList.contains('sel');
+      document.querySelectorAll('.atoken').forEach(x=>x.classList.remove('hi'));
+      document.querySelectorAll('.aitem').forEach(x=>x.classList.remove('sel'));
+      if(wasOn) return; // clicking the same name again turns the glow off
+      it.classList.add('sel');
+      const t=document.getElementById('at-'+it.dataset.id); if(t) t.classList.add('hi');
+    });
+  });
+}
+
+/* ================= PNG export ================= */
+const EX_W=1600, EX_H=1000;
+function loadImg(src){
+  return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=()=>rej(new Error('img')); i.src=src; });
+}
+function drawCover(c,img,x,y,w,h){
+  const s=Math.max(w/img.width,h/img.height), dw=img.width*s, dh=img.height*s;
+  c.save(); c.beginPath(); c.rect(x,y,w,h); c.clip();
+  c.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh); c.restore();
+}
+async function drawScene(c, bgId, ox, oy, w, h, withNames){
+  const bg=await loadImg(bgSrc(bgId));
+  drawCover(c,bg,ox,oy,w,h);
+  const list=data[bgId]||[];
+  const cw=w*CHAR_FRACTION, ch=cw*(CANVAS_H/CANVAS_W);
+  for(const r of list){
+    try{
+      const im=await loadImg(r.paintedImage);
+      const cx=ox+(r.x/100)*w, cy=oy+(r.y/100)*h;
+      c.drawImage(im, cx-cw/2, cy-ch/2, cw, ch);
+      if(withNames){
+        c.beginPath(); c.arc(cx,cy,Math.max(cw,ch)*0.8,0,7);
+        c.strokeStyle='#FFC93C'; c.lineWidth=Math.max(2,w/300); c.stroke();
+        const label=r.name||'이름 없음';
+        const fs=Math.max(13,w/48);
+        c.font='700 '+fs+'px sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+        const tw=c.measureText(label).width, ly=cy+Math.max(cw,ch)*0.8+fs;
+        c.fillStyle='rgba(0,0,0,.72)';
+        c.fillRect(cx-tw/2-8, ly-fs*0.7, tw+16, fs*1.4);
+        c.fillStyle='#fff'; c.fillText(label,cx,ly);
+      }
+    }catch(e){}
+  }
+}
+function downloadCanvas(cv,name){
+  cv.toBlob(b=>{
+    const url=URL.createObjectURL(b);
+    const a=document.createElement('a');
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+  },'image/png');
+}
+function pngStatus(m,err){ const e=document.getElementById('png-status'); e.textContent=m; e.style.color=err?'var(--hot)':'var(--ink)'; }
+function stamp(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+}
+async function exportOne(withNames){
+  const list=data[curBg]||[];
+  if(!list.length){ pngStatus('이 배경엔 아직 아무도 없어요.',true); return; }
+  pngStatus('사진 만드는 중...');
+  try{
+    const cv=document.createElement('canvas'); cv.width=EX_W; cv.height=EX_H;
+    const c=cv.getContext('2d');
+    await drawScene(c,curBg,0,0,EX_W,EX_H,withNames);
+    downloadCanvas(cv,`MEGA_${bgName(curBg)}_${stamp()}.png`);
+    pngStatus(`${bgName(curBg)} 사진을 저장했어요 (${list.length}명).`);
+  }catch(e){ pngStatus('사진 저장에 실패했어요.',true); }
+}
+async function exportAll(){
+  const used=bgList.filter(b=>(data[b.id]||[]).length);
+  if(!used.length){ pngStatus('아직 아무도 숨지 않았어요.',true); return; }
+  pngStatus('사진 만드는 중...');
+  try{
+    const cols=used.length>1?2:1, rows=Math.ceil(used.length/cols);
+    const cellW=800, cellH=500, pad=16, labelH=44;
+    const cv=document.createElement('canvas');
+    cv.width=cols*cellW+pad*(cols+1);
+    cv.height=rows*(cellH+labelH)+pad*(rows+1);
+    const c=cv.getContext('2d');
+    c.fillStyle='#F2EFE6'; c.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<used.length;i++){
+      const bx=pad+(i%cols)*(cellW+pad), by=pad+Math.floor(i/cols)*(cellH+labelH+pad);
+      await drawScene(c,used[i].id,bx,by,cellW,cellH,true);
+      c.strokeStyle='#1D1B18'; c.lineWidth=4; c.strokeRect(bx,by,cellW,cellH);
+      c.fillStyle='#1D1B18'; c.font='700 26px sans-serif'; c.textAlign='left'; c.textBaseline='middle';
+      c.fillText(`${bgName(used[i].id)} · ${(data[used[i].id]||[]).length}명`, bx+4, by+cellH+labelH/2);
+    }
+    downloadCanvas(cv,`MEGA_전체_${stamp()}.png`);
+    pngStatus('전체 배경을 한 장으로 저장했어요.');
+  }catch(e){ pngStatus('사진 저장에 실패했어요.',true); }
+}
+document.getElementById('save-png').addEventListener('click',()=>exportOne(false));
+document.getElementById('save-png-named').addEventListener('click',()=>exportOne(true));
+document.getElementById('save-png-all').addEventListener('click',exportAll);
+
+/* background manager */
+function status(m,err){ const e=document.getElementById('bg-status'); e.textContent=m; e.style.color=err?'var(--hot)':'var(--ink)'; }
+function renderBgMan(){
+  const w=document.getElementById('bg-manage-list'); w.innerHTML='';
+  bgList.forEach(bg=>{
+    const custom=bgCustom(bg.id), builtin=bgIsBuiltin(bg.id);
+    const n=(data[bg.id]||[]).length;
+    const d=document.createElement('div'); d.className='bgrow';
+    d.innerHTML=`<div class="bgthumb">${bgLayerHTML(bg.id)}</div>
+      <div class="bgmeta"><input type="text" value="${bgName(bg.id)}" data-name="${bg.id}">
+      <div class="bgstate">${custom?'올린 사진':'기본 배경'}${n?` · ${n}명 숨어있음`:''}</div></div>
+      <div class="toolrow"><button class="toolbtn" data-up="${bg.id}">사진 바꾸기</button>
+      ${builtin?`<button class="toolbtn" data-reset="${bg.id}" ${custom?'':'disabled'}>기본으로</button>`:''}
+      <button class="toolbtn" data-del="${bg.id}">삭제</button></div>
+      <input type="file" accept="image/*" class="hidden" data-file="${bg.id}">`;
+    w.appendChild(d);
+  });
+
+  const add=document.createElement('div');
+  add.className='bgrow';
+  add.style.justifyContent='center';
+  add.innerHTML=`<button class="toolbtn" id="bg-add" style="min-width:220px;">＋ 배경 추가</button>
+    <input type="file" accept="image/*" class="hidden" id="bg-add-file">`;
+  w.appendChild(add);
+
+  w.querySelectorAll('[data-up]').forEach(b=>b.addEventListener('click',()=>w.querySelector(`[data-file="${b.dataset.up}"]`).click()));
+  w.querySelectorAll('[data-file]').forEach(i=>i.addEventListener('change',e=>{ upload(i.dataset.file,e.target.files[0]); e.target.value=''; }));
+  w.querySelectorAll('[data-reset]').forEach(b=>b.addEventListener('click',()=>resetBg(b.dataset.reset)));
+  w.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>removeBg(b.dataset.del)));
+  w.querySelectorAll('[data-name]').forEach(i=>i.addEventListener('change',()=>rename(i.dataset.name,i.value.trim())));
+  document.getElementById('bg-add').addEventListener('click',()=>document.getElementById('bg-add-file').click());
+  document.getElementById('bg-add-file').addEventListener('change',e=>{ addBg(e.target.files[0]); e.target.value=''; });
+}
+function processImg(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onerror=()=>rej(new Error('read'));
+    r.onload=()=>{
+      const im=new Image();
+      im.onerror=()=>rej(new Error('img'));
+      im.onload=()=>{
+        const W=960,H=600, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+        const c=cv.getContext('2d');
+        const s=Math.max(W/im.width,H/im.height), dw=im.width*s, dh=im.height*s;
+        c.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);
+        res(cv.toDataURL('image/jpeg',0.82));
+      };
+      im.src=r.result;
+    };
+    r.readAsDataURL(f);
+  });
+}
+async function refreshAfterBgChange(msg){
+  await saveBgConfig();
+  buildAdminTabs();
+  renderBgMan();
+  renderAdmin();
+  status(msg);
+}
+async function addBg(f){
+  if(!f) return;
+  if(!f.type.startsWith('image/')){ status('사진만 올릴 수 있어요.',true); return; }
+  status('사진 처리 중...');
+  try{
+    const img=await processImg(f);
+    const id='bg_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    let n=1; const taken=new Set(bgList.map(b=>b.name));
+    while(taken.has('새 배경 '+n)) n++;
+    bgList.push({ id, name:'새 배경 '+n, image:img });
+    data[id]=[];
+    curBg=id;
+    await refreshAfterBgChange('배경을 추가했어요. 이름을 바꿔보세요.');
+  }catch(e){ status('추가 실패. 더 작은 사진으로 해보세요.',true); }
+}
+async function removeBg(id){
+  if(bgList.length<=1){ status('배경은 최소 1개는 있어야 해요.',true); return; }
+  const n=(data[id]||[]).length;
+  const msg = n
+    ? `"${bgName(id)}" 배경을 삭제할까요?\n여기 숨어있는 ${n}명의 기록도 함께 지워지고 되돌릴 수 없어요.`
+    : `"${bgName(id)}" 배경을 삭제할까요?`;
+  if(!confirm(msg)) return;
+  status('삭제하는 중...');
+  try{
+    for(const r of (data[id]||[])){ try{ await store.remove(r.id); }catch(e){} }
+    try{ await store.remove(ROUND_PREFIX+id); }catch(e){}
+    delete data[id];
+    bgList=bgList.filter(b=>b.id!==id);
+    if(curBg===id) curBg=bgList.length?bgList[0].id:null;
+    await refreshAfterBgChange('배경을 삭제했어요.');
+  }catch(e){ status('삭제 실패',true); }
+}
+async function upload(id,f){
+  if(!f) return;
+  if(!f.type.startsWith('image/')){ status('사진만 올릴 수 있어요.',true); return; }
+  status('사진 처리 중...');
+  try{
+    const d=await processImg(f);
+    const e=bgEntry(id); if(e) e.image=d;
+    await refreshAfterBgChange(bgName(id)+' 배경 사진을 바꿨어요.');
+  }catch(e){ status('저장 실패. 더 작은 사진으로 해보세요.',true); }
+}
+async function resetBg(id){
+  const e=bgEntry(id); if(e) delete e.image;
+  try{ await refreshAfterBgChange(bgName(id)+' 기본 배경으로 되돌렸어요.'); }
+  catch(err){ status('저장 실패',true); }
+}
+async function rename(id,n){
+  if(!n){ status('이름은 비울 수 없어요.',true); renderBgMan(); return; }
+  const e=bgEntry(id); if(e) e.name=n;
+  try{ await refreshAfterBgChange('이름을 바꿨어요.'); }
+  catch(err){ status('저장 실패',true); }
+}
+function refreshTabs(){ document.querySelectorAll('#admin-bg-tabs .bgtab').forEach(t=>t.textContent=bgName(t.dataset.bg)); }
+
+/* stop iPad double-tap zoom / pull-to-refresh on the stage */
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('dblclick',e=>e.preventDefault());
+
+showOnly('home');
+</script>
+</body>
+</html>
