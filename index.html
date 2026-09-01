@@ -92,9 +92,9 @@
     position:relative; width:100%; aspect-ratio:4/3; border-radius:18px; overflow:hidden;
     border:3px solid var(--ink); background:#ccc; touch-action:none;
   }
-  .stage > .bg-layer{ width:100%; height:100%; display:block; object-fit:cover; }
+  .bg-layer{ width:100%; height:100%; display:block; object-fit:cover; }
   .stage.eyedrop{ cursor:crosshair; }
-  .viewport{ position:absolute; inset:0; transform-origin:50% 50%; }
+  .viewport{ position:absolute; inset:0; transform-origin:0 0; }
   .char-anchor{ position:absolute; width:0; height:0; left:0; top:0; }
   .char-inner{ position:absolute; width:260px; height:340px; left:0; top:0; transform:translate(-50%,-50%) scale(.2); transform-origin:center center; touch-action:none; }
   .char-inner canvas{ width:260px; height:340px; display:block; touch-action:none; }
@@ -569,7 +569,7 @@ function goStep(s){ document.querySelectorAll('#wizard > section.step').forEach(
 
 document.getElementById('start-btn').addEventListener('click', async ()=>{
   wizard={ backgroundId:null, pose:'wide', x:50, y:45 };
-  painted=false; zoom=1;
+  painted=false; resetView();
   showOnly('wizard'); goStep('bg');
   document.getElementById('bg-grid').innerHTML='<div class="empty">불러오는 중...</div>';
   await loadBgConfig(); buildBgGrid();
@@ -596,14 +596,13 @@ document.getElementById('bg-next').addEventListener('click',()=>{ goStep('create
 
 /* ---------- create ---------- */
 let pc, ctx, brush='#FF3E7F', bsize=22, eraser=false, eyedrop=false, painted=false;
-let drawing=false, lx=0, ly=0, bgRaster=null, zoom=1;
+let drawing=false, lx=0, ly=0, bgRaster=null, zoom=1, panX=0, panY=0;
 
 function buildCreate(){
   const stage=document.getElementById('create-stage');
   const viewport=document.getElementById('stage-viewport');
   const old=viewport.querySelector('.bg-layer'); if(old) old.remove();
   viewport.insertAdjacentHTML('afterbegin', bgLayerHTML(wizard.backgroundId));
-  viewport.querySelector('.bg-layer').addEventListener('click', eyedropClick);
 
   const rc=document.createElement('canvas'); rc.width=800; rc.height=600;
   bgRaster=rc.getContext('2d');
@@ -636,38 +635,72 @@ function setCharPosition(x,y){
   wizard.x=x; wizard.y=y;
   document.getElementById('char-anchor').style.left=x+'%';
   document.getElementById('char-anchor').style.top=y+'%';
-  document.getElementById('handle-anchor').style.left=x+'%';
-  document.getElementById('handle-anchor').style.top=y+'%';
-  document.getElementById('stage-viewport').style.transformOrigin=x+'% '+y+'%';
+  updateHandlePosition();
 }
-function applyPose(){ pc.style.clipPath=`path('${buildPosePath(wizard.pose)}')`; }
+
+/* ---- pan + zoom model ----
+   The viewport is transformed as translate(panX,panY) scale(zoom) with its
+   origin at the top-left, so a point at world fraction (fx,fy) lands at
+   screen px  pan + f * stageSize * zoom.  Inverting that lets a pinch keep
+   whatever the fingers grabbed pinned under the fingers. */
+function stageRect(){ return document.getElementById('create-stage').getBoundingClientRect(); }
+function applyViewport(){
+  clampPan();
+  document.getElementById('stage-viewport').style.transform =
+    `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  updateHandlePosition();
+  setZoomLabel();
+}
+function clampPan(){
+  const r=stageRect(); if(!r.width) return;
+  // never let the scene pull away from the stage edges
+  panX=Math.min(0, Math.max(r.width*(1-zoom), panX));
+  panY=Math.min(0, Math.max(r.height*(1-zoom), panY));
+}
+/* screen point -> world fraction (0..1 across the background) */
+function screenToWorld(clientX, clientY){
+  const r=stageRect();
+  return {
+    fx: ((clientX-r.left)-panX)/(r.width*zoom),
+    fy: ((clientY-r.top)-panY)/(r.height*zoom)
+  };
+}
+/* world fraction -> screen px relative to the stage box */
+function worldToStagePx(fx, fy){
+  const r=stageRect();
+  return { x: panX + fx*r.width*zoom, y: panY + fy*r.height*zoom };
+}
+function resetView(){ zoom=1; panX=0; panY=0; }
+
 function updateScale(){
   const stage=document.getElementById('create-stage'), inner=document.getElementById('char-inner');
   const w=stage.getBoundingClientRect().width; if(!w) return;
-  // character keeps its fixed on-screen size relative to the stage...
+  // The character lives inside the viewport, so the viewport's zoom already
+  // magnifies it along with the background — this only sets its base size.
   const s=(w*CHAR_FRACTION)/CANVAS_W;
   inner.style.transform=`translate(-50%,-50%) scale(${s})`;
-  // ...and "zoom" instead magnifies the whole scene (background + character)
-  // around the character's own position, so it stays put while the world scales.
-  document.getElementById('stage-viewport').style.transform=`scale(${zoom})`;
-  updateHandleSide();
+  applyViewport();
 }
-/* If the character sits near the top of the stage, the handle (which normally
-   floats above the head) would be clipped off-screen. Flip it to sit below
-   the character instead, using its actual current height so it clears
-   correctly at any zoom level. */
-function updateHandleSide(){
-  const stage=document.getElementById('create-stage');
+
+/* The handle sits OUTSIDE the zoomed viewport so it keeps a constant, easily
+   tappable size — which means its position has to be projected manually. */
+function updateHandlePosition(){
+  const anchor=document.getElementById('handle-anchor');
+  if(!anchor) return;
+  const p=worldToStagePx(wizard.x/100, wizard.y/100);
+  anchor.style.left=p.x+'px';
+  anchor.style.top=p.y+'px';
+  updateHandleSide(p.y);
+}
+function updateHandleSide(screenY){
   const inner=document.getElementById('char-inner');
   const handle=document.getElementById('drag-handle');
-  if(!stage||!inner||!handle) return;
-  const stageH=stage.getBoundingClientRect().height; if(!stageH) return;
-  const halfCharPx=inner.getBoundingClientRect().height/2;
+  if(!inner||!handle) return;
+  if(screenY===undefined) screenY=worldToStagePx(wizard.x/100, wizard.y/100).y;
+  const halfCharPx=inner.getBoundingClientRect().height/2; // already includes zoom
   const handleH=handle.getBoundingClientRect().height||38;
   const gap=8;
-  const anchorYpx=(wizard.y/100)*stageH;
-  const spaceAbove=anchorYpx-halfCharPx;
-  if(spaceAbove < handleH+gap){
+  if(screenY-halfCharPx < handleH+gap){
     handle.style.transform=`translate(-50%, ${(halfCharPx+gap).toFixed(0)}px)`;
   }else{
     handle.style.transform='translate(-50%,-160%)';
@@ -680,37 +713,50 @@ function setZoomLabel(){
   document.getElementById('zoom-badge').textContent='확대 '+(Math.round(zoom*10)/10)+'x';
 }
 
-/* two-finger pinch to zoom while painting (iPad-friendly) */
+/* Two-finger pinch: zooms around the MIDPOINT BETWEEN THE FINGERS (not the
+   character) and pans with them, so whatever you grabbed stays under your
+   fingers — the way photo apps behave. */
 (function(){
   const stage=document.getElementById('create-stage');
   const active=new Map(); // pointerId -> {x,y}
-  let pinching=false, startDist=0, startZoom=1;
+  let pinching=false, startDist=0, startZoom=1, anchorWorld=null;
   function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function mid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
+
+  function beginPinch(){
+    const pts=[...active.values()];
+    const m=mid(pts[0],pts[1]);
+    startDist=dist(pts[0],pts[1]);
+    startZoom=zoom;
+    anchorWorld=screenToWorld(m.x, m.y); // the world point pinned under the fingers
+    pinching=true;
+  }
   stage.addEventListener('pointerdown', e=>{
     active.set(e.pointerId, {x:e.clientX,y:e.clientY});
     if(active.size===2){
-      pinching=true; drawing=false; // cancel any single-finger stroke in progress
-      e.stopPropagation(); // don't let this second finger also start a draw dab
-      const pts=[...active.values()];
-      startDist=dist(pts[0],pts[1]); startZoom=zoom;
+      drawing=false;          // cancel any single-finger stroke in progress
+      e.stopPropagation();    // and don't let this finger start a new dab
+      beginPinch();
     }
   }, true);
   stage.addEventListener('pointermove', e=>{
     if(!active.has(e.pointerId)) return;
     active.set(e.pointerId, {x:e.clientX,y:e.clientY});
-    if(pinching && active.size===2){
-      e.preventDefault();
-      const pts=[...active.values()];
-      const d=dist(pts[0],pts[1]);
-      if(startDist>0){
-        zoom=Math.max(1, Math.min(8, startZoom*(d/startDist)));
-        setZoomLabel(); updateScale();
-      }
-    }
+    if(!pinching || active.size!==2 || !anchorWorld) return;
+    e.preventDefault();
+    const pts=[...active.values()];
+    const m=mid(pts[0],pts[1]);
+    if(startDist>0) zoom=Math.max(1, Math.min(8, startZoom*(dist(pts[0],pts[1])/startDist)));
+    // keep anchorWorld under the current finger midpoint
+    const r=stageRect();
+    panX=(m.x-r.left)-anchorWorld.fx*r.width*zoom;
+    panY=(m.y-r.top) -anchorWorld.fy*r.height*zoom;
+    applyViewport();
   }, true);
   function release(e){
     active.delete(e.pointerId);
-    if(active.size<2) pinching=false;
+    if(active.size<2){ pinching=false; anchorWorld=null; }
+    if(active.size===2) beginPinch(); // re-anchor if a third finger lifted
   }
   stage.addEventListener('pointerup', release, true);
   stage.addEventListener('pointercancel', release, true);
@@ -772,6 +818,7 @@ function cpos(e){
 }
 function col(){ return eraser?BLANK:brush; }
 document.getElementById('paint-canvas').addEventListener('pointerdown',e=>{
+  if(eyedrop) return; // sampling a colour, not painting
   e.preventDefault(); drawing=true; const p=cpos(e); lx=p.x; ly=p.y;
   ctx.fillStyle=col(); ctx.beginPath(); ctx.arc(p.x,p.y,bsize/2,0,7); ctx.fill();
   e.target.setPointerCapture(e.pointerId);
@@ -789,10 +836,13 @@ document.getElementById('eyedrop-btn').addEventListener('click',()=>{
   document.getElementById('eyedrop-btn').classList.toggle('on',eyedrop);
   document.getElementById('create-stage').classList.toggle('eyedrop',eyedrop);
 });
+document.getElementById('create-stage').addEventListener('click', eyedropClick, true);
 function eyedropClick(e){
   if(!eyedrop||!bgRaster) return;
-  const r=e.currentTarget.getBoundingClientRect();
-  const x=Math.floor((e.clientX-r.left)*(800/r.width)), y=Math.floor((e.clientY-r.top)*(600/r.height));
+  // Convert through the pan/zoom transform rather than the element's own box,
+  // so sampling stays accurate at any zoom level and pan offset.
+  const f=screenToWorld(e.clientX, e.clientY);
+  const x=Math.floor(f.fx*800), y=Math.floor(f.fy*600);
   try{
     const d=bgRaster.getImageData(Math.max(0,Math.min(799,x)),Math.max(0,Math.min(599,y)),1,1).data;
     setBrush('#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join(''));
@@ -804,23 +854,22 @@ function eyedropClick(e){
 
 /* drag */
 function makeDraggable(){
-  const h0=document.getElementById('drag-handle'), stage=document.getElementById('create-stage');
+  const h0=document.getElementById('drag-handle');
   const h=h0.cloneNode(true); h0.parentNode.replaceChild(h,h0);
   let dg=false, ox=0, oy=0;
   h.addEventListener('pointerdown',e=>{
     e.preventDefault(); dg=true;
-    const r=stage.getBoundingClientRect();
-    ox=wizard.x-((e.clientX-r.left)/r.width)*100;
-    oy=wizard.y-((e.clientY-r.top)/r.height)*100;
+    const f=screenToWorld(e.clientX, e.clientY);
+    ox=wizard.x-f.fx*100;
+    oy=wizard.y-f.fy*100;
     h.setPointerCapture(e.pointerId);
   });
   h.addEventListener('pointermove',e=>{
     if(!dg) return; e.preventDefault();
-    const r=stage.getBoundingClientRect();
-    let x=((e.clientX-r.left)/r.width)*100+ox, y=((e.clientY-r.top)/r.height)*100+oy;
+    const f=screenToWorld(e.clientX, e.clientY);
+    let x=f.fx*100+ox, y=f.fy*100+oy;
     x=Math.max(4,Math.min(96,x)); y=Math.max(6,Math.min(96,y));
     setCharPosition(x,y);
-    updateHandleSide();
   });
   h.addEventListener('pointerup',()=>{ dg=false; });
   h.addEventListener('pointercancel',()=>{ dg=false; });
@@ -843,15 +892,24 @@ document.getElementById('save-btn').addEventListener('click', async ()=>{
   const btn=document.getElementById('save-btn'); btn.disabled=true; btn.textContent='저장 중...';
   const img=exportPNG();
   const id='camo_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random());
-  let closed=false;
+  let closed=false, ok=false;
   try{
     const s=await getRound(wizard.backgroundId);
     const n=s.count+1; closed=n>=ROUND_LIMIT;
     await store.set(id, JSON.stringify({ backgroundId:wizard.backgroundId, name:nm, pose:wizard.pose,
       paintedImage:img, x:wizard.x, y:wizard.y, round:s.round, createdAt:new Date().toISOString() }));
     await setRound(wizard.backgroundId, closed?{round:s.round+1,count:0}:{round:s.round,count:n});
-  }catch(e){ console.error(e); }
+    ok=true;
+  }catch(e){ console.error('save failed', e); }
   btn.disabled=false; btn.textContent='숨기 완료!';
+
+  if(!ok){
+    // Never pretend it worked — a silently dropped save loses the drawing for good.
+    document.getElementById('name-warning').textContent=
+      '저장에 실패했어요! 저장 공간이 부족할 수 있어요. 운영진에게 알려주세요.';
+    return;
+  }
+
   document.getElementById('saved-note').textContent = closed
     ? `${nm} 까지 ${ROUND_LIMIT}명 꽉 찼다! 다음 사람은 빈 맵에서 시작해.`
     : `${nm}, 잘 숨었어. 다음 사람에게 넘겨줘!`;
@@ -860,7 +918,7 @@ document.getElementById('save-btn').addEventListener('click', async ()=>{
 });
 document.getElementById('saved-home').addEventListener('click',()=>showOnly('home'));
 document.getElementById('saved-again').addEventListener('click',()=>{
-  wizard={ backgroundId:null, pose:'wide', x:50, y:45 }; painted=false; zoom=1;
+  wizard={ backgroundId:null, pose:'wide', x:50, y:45 }; painted=false; resetView();
   goStep('bg'); buildBgGrid();
 });
 
@@ -1148,7 +1206,6 @@ async function rename(id,n){
   try{ await refreshAfterBgChange('이름을 바꿨어요.'); }
   catch(err){ status('저장 실패',true); }
 }
-function refreshTabs(){ document.querySelectorAll('#admin-bg-tabs .bgtab').forEach(t=>t.textContent=bgName(t.dataset.bg)); }
 
 /* stop iPad double-tap zoom / pull-to-refresh on the stage */
 document.addEventListener('gesturestart',e=>e.preventDefault());
