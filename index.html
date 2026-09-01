@@ -631,6 +631,8 @@ function buildCreate(){
 /* char-anchor (inside the zoomed viewport) and handle-anchor (outside it, so the
    handle stays a fixed on-screen size) always share the same % position, and
    the viewport zooms around that same point so the character never drifts. */
+function applyPose(){ pc.style.clipPath=`path('${buildPosePath(wizard.pose)}')`; }
+
 function setCharPosition(x,y){
   wizard.x=x; wizard.y=y;
   document.getElementById('char-anchor').style.left=x+'%';
